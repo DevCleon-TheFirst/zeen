@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        background-color: #faf8f5;
+        color: #241e19;
+        font-family: 'Jost', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-[#4a3324] hover:bg-[#38261a] text-[#faf8f5] text-xs font-medium rounded-md shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#7b5537]/40 focus:ring-offset-1;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-white hover:bg-[#f7f4ef] text-[#4a3324] text-xs font-medium rounded-md border border-[#e8e2d9] shadow-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#7b5537]/30;
+    }
+
+    .card {
+        @apply bg-white border border-[#e8e2d9] rounded-lg shadow-sm;
+    }
+
+    .badge-neutral {
+        @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#f5efe6] text-[#4a3324] border border-[#e8e2d9];
+    }
+}
