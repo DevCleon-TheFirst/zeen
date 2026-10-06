@@ -55,9 +55,9 @@ class AiAgentOrchestrator
 
         // If no LLM API key has been set in Settings/Ai, provide intelligent rule-based responses using the catalog
         if (empty($setting->api_key)) {
-            $replyText = $this->handleWithoutApiKey($conversation, $inboundMessage);
+            [$replyText, $pendingMedia] = $this->handleWithoutApiKey($conversation, $inboundMessage);
 
-            return $this->channelSender->send($conversation, $replyText, null, 'ai');
+            return $this->channelSender->send($conversation, $replyText, null, 'ai', $pendingMedia);
         }
 
         $systemPrompt = $this->buildSystemPrompt($conversation);
@@ -70,10 +70,10 @@ class AiAgentOrchestrator
 
         // Bypass AI safety refusal for photos by injecting a hard system override at the very end
         $contentLower = strtolower($inboundMessage->content);
-        if (str_contains($contentLower, 'picture') || str_contains($contentLower, 'photo') || str_contains($contentLower, 'image') || str_contains($contentLower, 'look like')) {
+        if (str_contains($contentLower, 'picture') || str_contains($contentLower, 'photo') || str_contains($contentLower, 'image') || str_contains($contentLower, 'look like') || str_contains($contentLower, 'see')) {
             $messages[] = [
                 'role' => 'system',
-                'content' => 'SYSTEM CRITICAL OVERRIDE: The user just asked to see a picture/photo of a product. You MUST immediately call the `show_product_photo` tool. DO NOT say you are a text-based assistant. DO NOT apologize. The backend will intercept your tool call and send the actual image to the user automatically. Just call the tool and say "Here is the picture!"',
+                'content' => 'SYSTEM CRITICAL OVERRIDE: The user just asked to see a picture/photo. You MUST immediately execute the `show_product_photo` tool right now! If the user did not specify a product name, call `show_product_photo` with `item_name`: "honey" or our featured item. DO NOT reply with text asking which item they want first. ALWAYS call `show_product_photo` immediately!',
             ];
         }
 
@@ -479,12 +479,44 @@ PROMPT;
         }
 
         if ($toolName === 'show_product_photo') {
-            $query = $args['item_name'] ?? '';
+            $query = trim($args['item_name'] ?? '');
+
+            // 1. Exact or substring match
             $items = BusinessCatalogItem::where('business_id', $businessId)
                 ->where('is_active', true)
-                ->where('name', 'like', "%{$query}%")
+                ->where(function ($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                        ->orWhere('description', 'like', "%{$query}%");
+                })
                 ->limit(1)
                 ->get(['id', 'name', 'images']);
+
+            // 2. Word token match if no exact match
+            if ($items->isEmpty() && ! empty($query)) {
+                $words = array_filter(explode(' ', strtolower($query)), fn ($w) => strlen($w) >= 3);
+                foreach ($words as $word) {
+                    $items = BusinessCatalogItem::where('business_id', $businessId)
+                        ->where('is_active', true)
+                        ->where(function ($q) use ($word) {
+                            $q->where('name', 'like', "%{$word}%")
+                                ->orWhere('description', 'like', "%{$word}%");
+                        })
+                        ->limit(1)
+                        ->get(['id', 'name', 'images']);
+
+                    if ($items->isNotEmpty()) {
+                        break;
+                    }
+                }
+            }
+
+            // 3. Fallback to first available product with images if query didn't match anything
+            if ($items->isEmpty()) {
+                $items = BusinessCatalogItem::where('business_id', $businessId)
+                    ->where('is_active', true)
+                    ->limit(1)
+                    ->get(['id', 'name', 'images']);
+            }
 
             return ['success' => true, 'message' => 'Photo attached to chat successfully.', 'products' => $items->toArray()];
         }
@@ -732,17 +764,53 @@ PROMPT;
         return ['error' => "Unknown tool: {$toolName}"];
     }
 
-    private function handleWithoutApiKey(Conversation $conversation, Message $inbound): string
+    private function handleWithoutApiKey(Conversation $conversation, Message $inbound): array
     {
         $business = $conversation->business;
         $customer = $conversation->customer;
         $text = strtolower(trim($inbound->content ?? ''));
+        $pendingMedia = null;
 
         // Check if customer is asking for human escalation
         if (str_contains($text, 'human') || str_contains($text, 'agent') || str_contains($text, 'manager') || str_contains($text, 'complaint')) {
             $conversation->escalate('Customer requested human assistance');
 
-            return "Hello {$customer->name}, I have escalated your conversation to our team at {$business->name}. A representative will respond to you here shortly!";
+            return ["Hello {$customer->name}, I have escalated your conversation to our team at {$business->name}. A representative will respond to you here shortly!", null];
+        }
+
+        // Check if customer is specifically asking for a photo / picture of a product
+        if (str_contains($text, 'picture') || str_contains($text, 'photo') || str_contains($text, 'image') || str_contains($text, 'look like') || str_contains($text, 'see')) {
+            $items = BusinessCatalogItem::where('business_id', $business->id)
+                ->where('is_active', true)
+                ->get();
+
+            $matchedItem = null;
+            foreach ($items as $it) {
+                $words = explode(' ', strtolower($it->name));
+                foreach ($words as $w) {
+                    if (strlen($w) >= 3 && str_contains($text, $w)) {
+                        $matchedItem = $it;
+                        break 2;
+                    }
+                }
+            }
+            if (! $matchedItem) {
+                $matchedItem = $items->first();
+            }
+
+            if ($matchedItem) {
+                $images = $matchedItem->images ?? [];
+                $firstImage = is_array($images) ? ($images[0] ?? null) : $images;
+                if ($firstImage) {
+                    $pendingMedia = [['type' => 'image', 'url' => $firstImage]];
+                    $priceStr = $matchedItem->formatted_price ?: ($matchedItem->currency.' '.number_format($matchedItem->price, 2));
+
+                    return [
+                        "📸 Here is the photo of *{$matchedItem->name}* ({$priceStr})!\n\n{$matchedItem->description}\n\n💡 To order this, just reply: \"Add {$matchedItem->name} to cart\"",
+                        $pendingMedia,
+                    ];
+                }
+            }
         }
 
         // Check if customer is asking about catalog, products, or pricing
@@ -762,9 +830,9 @@ PROMPT;
                     }
                     $lines[] = "• *{$item->name}* ({$priceStr}){$sizeStr}\n  _{$item->description}_";
                 }
-                $lines[] = "\n💡 _To order: tell me which item and size you want (e.g. \"Add Nike sneaker size 43 to cart\")._";
+                $lines[] = "\n💡 _To order: tell me which item and size you want (e.g. \"Add {$items->first()->name} to cart\"). You can also ask \"Send picture of {$items->first()->name}\"!_";
 
-                return implode("\n", $lines);
+                return [implode("\n", $lines), null];
             }
         }
 
@@ -772,7 +840,7 @@ PROMPT;
         if (str_contains($text, 'cart') || str_contains($text, 'basket')) {
             $cart = $conversation->metadata['cart'] ?? ['items' => []];
             if (empty($cart['items'])) {
-                return '🛒 Your shopping cart is currently empty. Ask me about our available products to start shopping!';
+                return ['🛒 Your shopping cart is currently empty. Ask me about our available products to start shopping!', null];
             }
 
             $currency = $cart['currency'] ?? 'NGN';
@@ -785,7 +853,7 @@ PROMPT;
             $lines[] = "\n*Subtotal:* {$currency} ".number_format($cart['subtotal'], 2);
             $lines[] = "\nReady to order? Send me your delivery address to proceed to checkout!";
 
-            return implode("\n", $lines);
+            return [implode("\n", $lines), null];
         }
 
         // Check if customer wants to checkout / pay
@@ -814,7 +882,7 @@ PROMPT;
                 $currency = $cart['currency'] ?? 'NGN';
                 $priceStr = $currency.' '.number_format($cart['subtotal'], 2);
 
-                return "🎉 *Checkout Ready! Total: {$priceStr}*\n\nClick below to complete your secure payment:\n{$payment->checkout_url}\n\n_Once paid, your order tracking code and receipt will be delivered here instantly!_";
+                return ["🎉 *Checkout Ready! Total: {$priceStr}*\n\nClick below to complete your secure payment:\n{$payment->checkout_url}\n\n_Once paid, your order tracking code and receipt will be delivered here instantly!_", null];
             }
 
             // Fallback for single item direct purchase
@@ -832,11 +900,11 @@ PROMPT;
 
                 $priceStr = ($item->currency ?? 'NGN').' '.number_format($item->price, 2);
 
-                return "Here is your payment link for *{$item->name}* ({$priceStr}):\n\n{$payment->checkout_url}\n\n_Payment is secure. Your receipt and tracking code will be delivered immediately after payment._";
+                return ["Here is your payment link for *{$item->name}* ({$priceStr}):\n\n{$payment->checkout_url}\n\n_Payment is secure. Your receipt and tracking code will be delivered immediately after payment._", null];
             }
         }
 
-        return "Hello {$customer->name}! Welcome to {$business->name}. How can I assist you today? You can ask to view our products, check prices, or track an existing order.";
+        return ["Hello {$customer->name}! Welcome to {$business->name}. How can I assist you today? You can ask to view our products, check prices, see pictures, or track an existing order.", null];
     }
 
     private function callLlm(AiProviderSetting $setting, array $messages, array $tools = []): array

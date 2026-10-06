@@ -498,4 +498,23 @@ app.listen(PORT, () => {
     console.log(`=================================================`);
     console.log(`🚀 WhatsApp Web QR Gateway running on port ${PORT}`);
     console.log(`=================================================`);
+
+    // Auto-restore saved sessions on gateway boot
+    try {
+        if (fs.existsSync(SESSIONS_DIR)) {
+            const dirs = fs.readdirSync(SESSIONS_DIR);
+            for (const dir of dirs) {
+                if (dir.startsWith('session_')) {
+                    const bizId = dir.replace('session_', '');
+                    console.log(`[Auto-Boot] Restoring WhatsApp session for business ${bizId}...`);
+                    startSession(bizId).catch(err => {
+                        console.error(`[Auto-Boot] Error restoring session ${bizId}:`, err?.message || err);
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[Auto-Boot] Error scanning sessions directory:', e.message);
+    }
 });
+
