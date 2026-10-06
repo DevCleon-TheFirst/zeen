@@ -59,6 +59,19 @@ class PaymentWebhookController extends Controller
         }
 
         if (($payload['event'] ?? '') === 'charge.success') {
+            $data = $payload['data'] ?? [];
+            $gatewayEmail = $data['customer']['email'] ?? null;
+            if ($gatewayEmail && ! str_contains($gatewayEmail, 'noreply.com')) {
+                $meta = $payment->metadata ?? [];
+                if (empty($meta['customer_email'])) {
+                    $meta['customer_email'] = $gatewayEmail;
+                    $payment->update(['metadata' => $meta]);
+                }
+                if ($payment->customer && empty($payment->customer->email)) {
+                    $payment->customer->update(['email' => $gatewayEmail]);
+                }
+            }
+
             $this->fulfillPayment($payment, $business, $payload['data']['id'] ?? null);
         }
 
@@ -93,6 +106,18 @@ class PaymentWebhookController extends Controller
         }
 
         if (($payload['eventType'] ?? '') === 'SUCCESSFUL_TRANSACTION') {
+            $gatewayEmail = $eventData['customer']['email'] ?? null;
+            if ($gatewayEmail && ! str_contains($gatewayEmail, 'noreply.com')) {
+                $meta = $payment->metadata ?? [];
+                if (empty($meta['customer_email'])) {
+                    $meta['customer_email'] = $gatewayEmail;
+                    $payment->update(['metadata' => $meta]);
+                }
+                if ($payment->customer && empty($payment->customer->email)) {
+                    $payment->customer->update(['email' => $gatewayEmail]);
+                }
+            }
+
             $this->fulfillPayment($payment, $business, $eventData['transactionReference'] ?? null);
         }
 

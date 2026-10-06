@@ -33,6 +33,7 @@ class OrderFulfillmentService
         $shippingAddress = $metadata['shipping_address'] ?? null;
         $customerName = $metadata['customer_name'] ?? $payment->customer?->name;
         $customerPhone = $metadata['customer_phone'] ?? $payment->customer?->phone;
+        $customerEmail = $metadata['customer_email'] ?? $payment->customer?->email ?? null;
 
         $trackingCode = Order::generateTrackingCode();
 
@@ -54,6 +55,7 @@ class OrderFulfillmentService
             'shipping_address' => $shippingAddress,
             'customer_name' => $customerName,
             'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
             'metadata' => [
                 'gateway' => $payment->gateway,
                 'gateway_reference' => $payment->gateway_reference,
@@ -328,8 +330,8 @@ class OrderFulfillmentService
             ?? $payment->customer?->email
             ?? null;
 
-        if (! $customerEmail) {
-            Log::info("No customer email available for order {$order->tracking_code} — skipping receipt email.");
+        if (! $customerEmail || $customerEmail === 'customer@noreply.com') {
+            Log::info("No valid customer email available for order {$order->tracking_code} — skipping receipt email.");
 
             return;
         }
