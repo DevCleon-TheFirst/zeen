@@ -3,123 +3,164 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>New Sale!</title>
+<title>New Order #{{ $order->tracking_code }}</title>
 <style>
-  body { margin:0; padding:0; background:#f4f4f5; font-family:'Segoe UI',Arial,sans-serif; }
-  .wrapper { max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
-  .header { background:linear-gradient(135deg,#1d4ed8,#1e40af); padding:36px 32px; text-align:center; }
-  .header h1 { color:#fff; margin:0; font-size:26px; font-weight:700; }
-  .header p { color:#bfdbfe; margin:8px 0 0; font-size:15px; }
-  .icon { font-size:52px; display:block; margin-bottom:10px; }
-  .body { padding:32px; }
-  .alert-box { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:20px; margin-bottom:24px; }
-  .alert-box h2 { margin:0 0 12px; font-size:17px; color:#1d4ed8; }
-  .alert-box p { margin:4px 0; font-size:14px; color:#374151; }
-  .alert-box .val { font-weight:600; color:#111827; }
-  .revenue { background:#1d4ed8; color:#fff; border-radius:8px; padding:20px; margin-bottom:24px; text-align:center; }
-  .revenue .amount { font-size:32px; font-weight:800; }
-  .revenue p { margin:6px 0 0; font-size:14px; opacity:0.85; }
-  h2 { font-size:16px; font-weight:700; color:#111827; margin:0 0 12px; }
-  .items-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
-  .items-table th { background:#f9fafb; text-align:left; padding:10px 12px; font-size:13px; color:#6b7280; font-weight:600; border-bottom:2px solid #e5e7eb; }
-  .items-table td { padding:12px; font-size:14px; color:#374151; border-bottom:1px solid #f3f4f6; }
-  .items-table tr:last-child td { border-bottom:none; }
-  .stock-section { margin-bottom:24px; }
-  .stock-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:14px; }
-  .stock-item:last-child { border-bottom:none; }
-  .stock-badge { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
-  .badge-ok { background:#dcfce7; color:#16a34a; }
-  .badge-low { background:#fef9c3; color:#b45309; }
-  .badge-out { background:#fee2e2; color:#dc2626; }
-  .cta { text-align:center; margin-bottom:28px; }
-  .cta a { background:#1d4ed8; color:#fff; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:15px; display:inline-block; }
-  .footer { background:#f9fafb; padding:20px 32px; text-align:center; border-top:1px solid #e5e7eb; }
-  .footer p { margin:0; font-size:13px; color:#9ca3af; }
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  body { margin: 0; padding: 0; width: 100% !important; background-color: #faf8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #241e19; }
 </style>
 </head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    <span class="icon">🛒</span>
-    <h1>New Sale Alert!</h1>
-    <p>You just got a new order on {{ $business->name }}</p>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #faf8f5; -webkit-font-smoothing: antialiased;">
+@php
+    $appUrl = rtrim(config('app.url'), '/');
+    $logoUrl = $business->logo ? (str_starts_with($business->logo, 'http') ? $business->logo : $appUrl.'/storage/'.$business->logo) : $appUrl.'/images/logo.png';
+@endphp
 
-  <div class="body">
-    <div class="revenue">
-      <p>Total Revenue This Sale</p>
-      <div class="amount">{{ $order->currency }} {{ number_format($order->total_amount, 2) }}</div>
-      <p>Order #{{ $order->tracking_code }} · {{ $order->created_at->format('d M Y, g:i A') }}</p>
-    </div>
-
-    <div class="alert-box">
-      <h2>📋 Customer Details</h2>
-      <p>Name: <span class="val">{{ $order->customer_name ?? 'Unknown' }}</span></p>
-      <p>Phone: <span class="val">{{ $order->customer_phone ?? '—' }}</span></p>
-      @if($order->shipping_address)
-      <p>Delivery To: <span class="val">{{ $order->shipping_address }}</span></p>
-      @endif
-      <p>Order Status: <span class="val" style="color:#16a34a">CONFIRMED ✅</span></p>
-    </div>
-
-    <h2>📦 Items Sold</h2>
-    <table class="items-table">
-      <thead>
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf8f5; padding: 40px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border: 1px solid #e8e2d9; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(36, 30, 25, 0.04);">
+        
+        <!-- BRAND HEADER -->
         <tr>
-          <th>Item</th>
-          <th>Qty Sold</th>
-          <th>Unit Price</th>
-          <th>Revenue</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($order->items as $item)
-        <tr>
-          <td>
-            {{ $item->item_name }}
-            @if($item->size) <br><small style="color:#9ca3af">Size: {{ $item->size }}</small> @endif
+          <td align="center" style="padding: 36px 32px 28px; border-bottom: 1px solid #f2ece4; background-color: #ffffff;">
+            <a href="{{ $appUrl }}" target="_blank" style="text-decoration: none; display: inline-block;">
+              <img src="{{ $logoUrl }}" alt="{{ $business->name }}" height="44" style="height: 44px; max-height: 44px; width: auto; display: block; margin: 0 auto;" />
+            </a>
+            @if($business->name && $business->name !== 'Zeen')
+              <div style="margin-top: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #7b6a58;">
+                {{ $business->name }}
+              </div>
+            @endif
           </td>
-          <td>{{ $item->quantity }}</td>
-          <td>{{ $order->currency }} {{ number_format($item->unit_price, 2) }}</td>
-          <td>{{ $order->currency }} {{ number_format($item->total_price, 2) }}</td>
         </tr>
-        @endforeach
-      </tbody>
-    </table>
 
-    @php
-      $trackedItems = $order->items->filter(fn($i) => $i->catalogItem && $i->catalogItem->track_inventory);
-    @endphp
+        <!-- SALE ALERT BANNER -->
+        <tr>
+          <td style="padding: 32px 32px 24px;">
+            <div style="display: inline-block; padding: 4px 12px; border-radius: 20px; background-color: #f5efeb; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #7b5537; margin-bottom: 14px;">
+              New Order Received
+            </div>
+            <h1 style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #241e19; letter-spacing: -0.3px;">
+              {{ $order->currency }} {{ number_format($order->total_amount, 2) }}
+            </h1>
+            <p style="margin: 0; font-size: 13px; color: #8c7e72;">
+              Order #{{ $order->tracking_code }} &middot; {{ $order->created_at->format('M d, Y, g:i A') }}
+            </p>
+          </td>
+        </tr>
 
-    @if($trackedItems->isNotEmpty())
-    <div class="stock-section">
-      <h2>📊 Updated Stock Levels</h2>
-      @foreach($trackedItems as $item)
-        @php
-          $stock = $item->catalogItem->stock_quantity ?? 0;
-          $badgeClass = $stock === 0 ? 'badge-out' : ($stock <= 3 ? 'badge-low' : 'badge-ok');
-          $badgeText = $stock === 0 ? 'OUT OF STOCK' : ($stock <= 3 ? 'LOW STOCK' : 'In Stock');
-        @endphp
-        <div class="stock-item">
-          <span>{{ $item->item_name }}</span>
-          <span>
-            {{ $stock }} units left
-            <span class="stock-badge {{ $badgeClass }}">{{ $badgeText }}</span>
-          </span>
-        </div>
-      @endforeach
-    </div>
-    @endif
+        <!-- CUSTOMER & DELIVERY SUMMARY CARD -->
+        <tr>
+          <td style="padding: 0 32px 24px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf8f5; border: 1px solid #e8e2d9; border-radius: 8px; padding: 18px 20px;">
+              <tr>
+                <td style="font-size: 13px; color: #241e19; line-height: 1.6;">
+                  <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #8c7e72; margin-bottom: 6px;">
+                    Customer Details
+                  </div>
+                  <div style="font-weight: 600; color: #241e19;">{{ $order->customer_name ?? 'Customer' }}</div>
+                  @if($order->customer_phone)
+                    <div style="color: #7b6a58; font-size: 12px;">{{ $order->customer_phone }}</div>
+                  @endif
+                  @if($order->customer_email)
+                    <div style="color: #7b6a58; font-size: 12px;">{{ $order->customer_email }}</div>
+                  @endif
+                  @if($order->shipping_address)
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e2d9; color: #241e19; font-size: 12px;">
+                      <strong style="color: #8c7e72; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Delivery Destination:</strong>
+                      {{ $order->shipping_address }}
+                    </div>
+                  @endif
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
 
-    <div class="cta">
-      <a href="https://app.knotax.com.ng/orders">View Order in Dashboard →</a>
-    </div>
-  </div>
+        <!-- ITEMS SOLD & STOCK STATUS -->
+        <tr>
+          <td style="padding: 0 32px 28px;">
+            <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #241e19; margin-bottom: 12px;">
+              Items Sold & Stock Update
+            </div>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid #e8e2d9;">
+                  <th align="left" style="padding: 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Item</th>
+                  <th align="center" style="padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Sold</th>
+                  <th align="right" style="padding: 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Stock Left</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach($order->items as $item)
+                @php
+                    $catalogItem = $item->catalogItem;
+                    $remainingStock = $catalogItem?->stock_quantity;
+                @endphp
+                <tr style="border-bottom: 1px solid #f2ece4;">
+                  <td style="padding: 14px 0; font-size: 14px; font-weight: 600; color: #241e19; vertical-align: top;">
+                    {{ $item->item_name }}
+                    @if($item->size || $item->color)
+                      <div style="margin-top: 3px; font-size: 12px; font-weight: 400; color: #8c7e72;">
+                        @if($item->size) Size: {{ $item->size }} @endif
+                        @if($item->size && $item->color) &middot; @endif
+                        @if($item->color) Color: {{ $item->color }} @endif
+                      </div>
+                    @endif
+                  </td>
+                  <td align="center" style="padding: 14px 12px; font-size: 13px; font-weight: 600; color: #241e19; vertical-align: top;">
+                    {{ $item->quantity }}
+                  </td>
+                  <td align="right" style="padding: 14px 0; vertical-align: top;">
+                    @if($remainingStock !== null)
+                      @if($remainingStock === 0)
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: #fdecea; color: #c62828;">
+                          Sold Out
+                        </span>
+                      @elseif($remainingStock <= 3)
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: #fef9c3; color: #b45309;">
+                          Low: {{ $remainingStock }} left
+                        </span>
+                      @else
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; background-color: #edf7ed; color: #2e7d32;">
+                          {{ $remainingStock }} in stock
+                        </span>
+                      @endif
+                    @else
+                      <span style="font-size: 12px; color: #8c7e72;">&mdash;</span>
+                    @endif
+                  </td>
+                </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </td>
+        </tr>
 
-  <div class="footer">
-    <p>This alert was sent because a customer completed checkout on <strong>{{ $business->name }}</strong>.</p>
-    <p style="margin-top:8px; font-size:12px;">Powered by Zeen</p>
-  </div>
-</div>
+        <!-- CTA BUTTON -->
+        <tr>
+          <td align="center" style="padding: 0 32px 36px;">
+            <a href="{{ $appUrl }}/orders" target="_blank" style="display: inline-block; background-color: #291e17; color: #faf8f5; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; padding: 14px 28px; border-radius: 8px; box-shadow: 0 2px 6px rgba(41, 30, 23, 0.15);">
+              View Orders in Dashboard
+            </a>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td align="center" style="padding: 24px 32px; background-color: #faf8f5; border-top: 1px solid #e8e2d9;">
+            <p style="margin: 0; font-size: 12px; color: #8c7e72;">
+              Automated store notification for <strong style="color: #241e19;">{{ $business->name }}</strong>.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
 </body>
 </html>

@@ -3,114 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Order Confirmed</title>
+<title>Order Confirmation #{{ $order->tracking_code }}</title>
 <style>
-  body { margin:0; padding:0; background:#f4f4f5; font-family:'Segoe UI',Arial,sans-serif; }
-  .wrapper { max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
-  .header { background:linear-gradient(135deg,#16a34a,#15803d); padding:40px 32px; text-align:center; }
-  .header h1 { color:#fff; margin:0; font-size:28px; font-weight:700; }
-  .header p { color:#bbf7d0; margin:8px 0 0; font-size:15px; }
-  .check { font-size:56px; display:block; margin-bottom:12px; }
-  .body { padding:32px; }
-  .meta { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:20px; margin-bottom:24px; }
-  .meta p { margin:4px 0; font-size:14px; color:#374151; }
-  .meta .label { font-weight:600; color:#16a34a; }
-  .tracking { background:#16a34a; color:#fff; border-radius:8px; padding:16px 20px; margin-bottom:24px; text-align:center; }
-  .tracking .code { font-size:24px; font-weight:800; letter-spacing:3px; }
-  .tracking p { margin:4px 0 0; font-size:13px; opacity:0.85; }
-  h2 { font-size:16px; font-weight:700; color:#111827; margin:0 0 12px; }
-  .items-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
-  .items-table th { background:#f9fafb; text-align:left; padding:10px 12px; font-size:13px; color:#6b7280; font-weight:600; border-bottom:2px solid #e5e7eb; }
-  .items-table td { padding:12px; font-size:14px; color:#374151; border-bottom:1px solid #f3f4f6; }
-  .items-table tr:last-child td { border-bottom:none; }
-  .totals { background:#f9fafb; border-radius:8px; padding:16px 20px; margin-bottom:24px; }
-  .totals .row { display:flex; justify-content:space-between; font-size:14px; color:#374151; margin-bottom:6px; }
-  .totals .total-row { display:flex; justify-content:space-between; font-size:17px; font-weight:700; color:#16a34a; border-top:2px solid #e5e7eb; padding-top:10px; margin-top:6px; }
-  .address { background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:16px 20px; margin-bottom:24px; font-size:14px; color:#374151; }
-  .address .label { font-weight:600; color:#374151; margin-bottom:4px; }
-  .cta { text-align:center; margin-bottom:28px; }
-  .cta a { background:#16a34a; color:#fff; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:15px; display:inline-block; }
-  .footer { background:#f9fafb; padding:20px 32px; text-align:center; border-top:1px solid #e5e7eb; }
-  .footer p { margin:0; font-size:13px; color:#9ca3af; }
-  .footer strong { color:#374151; }
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  body { margin: 0; padding: 0; width: 100% !important; background-color: #faf8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #241e19; }
 </style>
 </head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    <span class="check">✅</span>
-    <h1>Payment Confirmed!</h1>
-    <p>Thank you for your order from {{ $business->name }}</p>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #faf8f5; -webkit-font-smoothing: antialiased;">
+@php
+    $appUrl = rtrim(config('app.url'), '/');
+    $logoUrl = $business->logo ? (str_starts_with($business->logo, 'http') ? $business->logo : $appUrl.'/storage/'.$business->logo) : $appUrl.'/images/logo.png';
+@endphp
 
-  <div class="body">
-    <div class="tracking">
-      <p>Your Order Tracking Code</p>
-      <div class="code">{{ $order->tracking_code }}</div>
-      <p>Save this code to track your order anytime</p>
-    </div>
-
-    <div class="meta">
-      <p><span class="label">Customer:</span> {{ $order->customer_name ?? 'Valued Customer' }}</p>
-      <p><span class="label">Phone:</span> {{ $order->customer_phone ?? '—' }}</p>
-      <p><span class="label">Order Date:</span> {{ $order->created_at->format('d M Y, g:i A') }}</p>
-      <p><span class="label">Payment Ref:</span> {{ $payment->reference }}</p>
-      <p><span class="label">Status:</span> <strong style="color:#16a34a">CONFIRMED ✅</strong></p>
-    </div>
-
-    <h2>Items Ordered</h2>
-    <table class="items-table">
-      <thead>
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf8f5; padding: 40px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border: 1px solid #e8e2d9; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(36, 30, 25, 0.04);">
+        
+        <!-- BRAND HEADER -->
         <tr>
-          <th>Item</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($order->items as $item)
-        <tr>
-          <td>
-            {{ $item->item_name }}
-            @if($item->size) <br><small style="color:#9ca3af">Size: {{ $item->size }}</small> @endif
-            @if($item->color) <small style="color:#9ca3af"> | Color: {{ $item->color }}</small> @endif
+          <td align="center" style="padding: 36px 32px 28px; border-bottom: 1px solid #f2ece4; background-color: #ffffff;">
+            <a href="{{ $appUrl }}" target="_blank" style="text-decoration: none; display: inline-block;">
+              <img src="{{ $logoUrl }}" alt="{{ $business->name }}" height="44" style="height: 44px; max-height: 44px; width: auto; display: block; margin: 0 auto;" />
+            </a>
+            @if($business->name && $business->name !== 'Zeen')
+              <div style="margin-top: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #7b6a58;">
+                {{ $business->name }}
+              </div>
+            @endif
           </td>
-          <td>{{ $item->quantity }}</td>
-          <td>{{ $order->currency }} {{ number_format($item->unit_price, 2) }}</td>
-          <td>{{ $order->currency }} {{ number_format($item->total_price, 2) }}</td>
         </tr>
-        @endforeach
-      </tbody>
-    </table>
 
-    <div class="totals">
-      @if($order->shipping_fee > 0)
-      <div class="row"><span>Subtotal</span><span>{{ $order->currency }} {{ number_format($order->subtotal, 2) }}</span></div>
-      <div class="row"><span>Delivery Fee</span><span>{{ $order->currency }} {{ number_format($order->shipping_fee, 2) }}</span></div>
-      @endif
-      <div class="total-row"><span>TOTAL PAID</span><span>{{ $order->currency }} {{ number_format($order->total_amount, 2) }}</span></div>
-    </div>
+        <!-- RECEIPT TITLE & STATUS -->
+        <tr>
+          <td style="padding: 32px 32px 24px;">
+            <div style="display: inline-block; padding: 4px 12px; border-radius: 20px; background-color: #f5efeb; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #7b5537; margin-bottom: 14px;">
+              Payment Confirmed
+            </div>
+            <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #241e19; letter-spacing: -0.3px; line-height: 1.3;">
+              Thank you for your order
+            </h1>
+            <p style="margin: 0; font-size: 14px; color: #7b6a58; line-height: 1.5;">
+              We have received your payment and your order is now being processed.
+            </p>
+          </td>
+        </tr>
 
-    @if($order->shipping_address)
-    <div class="address">
-      <div class="label">📦 Delivery Address</div>
-      {{ $order->shipping_address }}
-    </div>
-    @endif
+        <!-- TRACKING CODE CARD -->
+        <tr>
+          <td style="padding: 0 32px 28px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf8f5; border: 1px solid #e8e2d9; border-radius: 8px; padding: 18px 20px;">
+              <tr>
+                <td>
+                  <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #8c7e72; margin-bottom: 4px;">
+                    Tracking Code
+                  </div>
+                  <div style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 20px; font-weight: 700; color: #241e19; letter-spacing: 2px;">
+                    {{ $order->tracking_code }}
+                  </div>
+                </td>
+                <td align="right" valign="middle">
+                  <div style="font-size: 12px; color: #8c7e72;">
+                    {{ $order->created_at->format('M d, Y') }}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
 
-    <div class="cta">
-      <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $business->phone ?? '') }}?text={{ urlencode('Hi! Tracking my order #'.$order->tracking_code) }}">
-        💬 Track on WhatsApp
-      </a>
-    </div>
-  </div>
+        <!-- ORDER ITEMS TABLE -->
+        <tr>
+          <td style="padding: 0 32px 24px;">
+            <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #241e19; margin-bottom: 12px;">
+              Order Summary
+            </div>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid #e8e2d9;">
+                  <th align="left" style="padding: 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Item</th>
+                  <th align="center" style="padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Qty</th>
+                  <th align="right" style="padding: 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #8c7e72;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach($order->items as $item)
+                <tr style="border-bottom: 1px solid #f2ece4;">
+                  <td style="padding: 14px 0; font-size: 14px; font-weight: 600; color: #241e19; vertical-align: top;">
+                    {{ $item->item_name }}
+                    @if($item->size || $item->color)
+                      <div style="margin-top: 3px; font-size: 12px; font-weight: 400; color: #8c7e72;">
+                        @if($item->size) Size: {{ $item->size }} @endif
+                        @if($item->size && $item->color) &middot; @endif
+                        @if($item->color) Color: {{ $item->color }} @endif
+                      </div>
+                    @endif
+                  </td>
+                  <td align="center" style="padding: 14px 12px; font-size: 13px; color: #7b6a58; vertical-align: top;">
+                    {{ $item->quantity }}
+                  </td>
+                  <td align="right" style="padding: 14px 0; font-size: 14px; font-weight: 600; color: #241e19; vertical-align: top;">
+                    {{ $order->currency }} {{ number_format($item->total_price, 2) }}
+                  </td>
+                </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </td>
+        </tr>
 
-  <div class="footer">
-    <p>Questions? Contact <strong>{{ $business->name }}</strong></p>
-    @if($business->phone)<p>📞 {{ $business->phone }}</p>@endif
-    <p style="margin-top:12px; font-size:12px;">This is an automated receipt from {{ $business->name }} powered by Zeen.</p>
-  </div>
-</div>
+        <!-- TOTALS BREAKDOWN -->
+        <tr>
+          <td style="padding: 0 32px 28px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+              @if($order->shipping_fee > 0)
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #7b6a58;">Subtotal</td>
+                <td align="right" style="padding: 4px 0; font-size: 13px; color: #241e19;">{{ $order->currency }} {{ number_format($order->subtotal, 2) }}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #7b6a58;">Delivery Fee</td>
+                <td align="right" style="padding: 4px 0; font-size: 13px; color: #241e19;">{{ $order->currency }} {{ number_format($order->shipping_fee, 2) }}</td>
+              </tr>
+              @endif
+              <tr>
+                <td style="padding: 12px 0 0; font-size: 15px; font-weight: 700; color: #241e19; border-top: 1px solid #e8e2d9;">Total Paid</td>
+                <td align="right" style="padding: 12px 0 0; font-size: 17px; font-weight: 700; color: #241e19; border-top: 1px solid #e8e2d9;">{{ $order->currency }} {{ number_format($order->total_amount, 2) }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CUSTOMER & DELIVERY INFO -->
+        @if($order->shipping_address || $order->customer_name)
+        <tr>
+          <td style="padding: 0 32px 32px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf8f5; border: 1px solid #e8e2d9; border-radius: 8px; padding: 18px 20px;">
+              <tr>
+                <td style="font-size: 13px; color: #241e19; line-height: 1.5;">
+                  <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #8c7e72; margin-bottom: 6px;">
+                    Delivery Information
+                  </div>
+                  @if($order->customer_name)
+                    <div style="font-weight: 600; color: #241e19;">{{ $order->customer_name }}</div>
+                  @endif
+                  @if($order->customer_phone)
+                    <div style="color: #7b6a58; font-size: 12px;">{{ $order->customer_phone }}</div>
+                  @endif
+                  @if($order->shipping_address)
+                    <div style="margin-top: 6px; color: #241e19; font-size: 13px;">{{ $order->shipping_address }}</div>
+                  @endif
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        @endif
+
+        <!-- CTA BUTTON -->
+        @if($business->phone)
+        <tr>
+          <td align="center" style="padding: 0 32px 36px;">
+            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $business->phone) }}?text={{ urlencode('Hi! Tracking my order #'.$order->tracking_code) }}" target="_blank" style="display: inline-block; background-color: #291e17; color: #faf8f5; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; padding: 14px 28px; border-radius: 8px; box-shadow: 0 2px 6px rgba(41, 30, 23, 0.15);">
+              Track Order via WhatsApp
+            </a>
+          </td>
+        </tr>
+        @endif
+
+        <!-- FOOTER -->
+        <tr>
+          <td align="center" style="padding: 24px 32px; background-color: #faf8f5; border-top: 1px solid #e8e2d9;">
+            <p style="margin: 0; font-size: 12px; color: #8c7e72; line-height: 1.5;">
+              If you have any questions, reply to this email or contact <strong style="color: #241e19;">{{ $business->name }}</strong>.
+            </p>
+            @if($business->email || $business->phone)
+              <p style="margin: 6px 0 0; font-size: 12px; color: #8c7e72;">
+                @if($business->email) {{ $business->email }} @endif
+                @if($business->email && $business->phone) &middot; @endif
+                @if($business->phone) {{ $business->phone }} @endif
+              </p>
+            @endif
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
 </body>
 </html>

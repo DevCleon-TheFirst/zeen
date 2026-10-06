@@ -24,7 +24,7 @@ class CustomerOrderReceipt extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "✅ Order Confirmed — {$this->order->tracking_code} | {$this->business->name}",
+            subject: "Order Confirmation #{$this->order->tracking_code} — {$this->business->name}",
         );
     }
 

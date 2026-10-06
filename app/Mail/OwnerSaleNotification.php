@@ -22,7 +22,7 @@ class OwnerSaleNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "🛒 New Sale! Order {$this->order->tracking_code} | {$this->business->name}",
+            subject: "New Order Received: #{$this->order->tracking_code} — {$this->business->name}",
         );
     }
 
