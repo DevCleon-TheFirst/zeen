@@ -2,6 +2,8 @@
 
 namespace App\Services\Orders;
 
+use App\Mail\CustomerOrderReceipt;
+use App\Mail\OwnerSaleNotification;
 use App\Models\Business;
 use App\Models\BusinessCatalogItem;
 use App\Models\Conversation;
@@ -9,16 +11,17 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Services\Automation\AutomationTriggerDispatcher;
 use App\Services\Channels\ChannelSender;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class OrderFulfillmentService
 {
     public function __construct(
         protected ChannelSender $channelSender = new ChannelSender,
-    ) {
-    }
+    ) {}
 
     /**
      * Create an order from payment and cart metadata upon successful checkout.
@@ -59,7 +62,7 @@ class OrderFulfillmentService
 
         // Attach order items and update inventory
         $items = $cart['items'] ?? [];
-        if (!empty($items)) {
+        if (! empty($items)) {
             foreach ($items as $item) {
                 $qty = (int) ($item['quantity'] ?? 1);
                 OrderItem::create([
@@ -74,7 +77,7 @@ class OrderFulfillmentService
                 ]);
 
                 // Deplete inventory
-                if (!empty($item['catalog_item_id'])) {
+                if (! empty($item['catalog_item_id'])) {
                     $catalogItem = BusinessCatalogItem::find($item['catalog_item_id']);
                     if ($catalogItem && $catalogItem->track_inventory && $catalogItem->stock_quantity !== null) {
                         $newStock = max(0, $catalogItem->stock_quantity - $qty);
@@ -122,12 +125,18 @@ class OrderFulfillmentService
         $receipt = $this->formatReceipt($order, $business);
         $this->notifyCustomer($order, $business, $receipt);
 
-        // Notify Store Owner
+        // Notify Store Owner via Telegram
         $this->notifyStoreOwner($order, $business);
+
+        // Send customer email receipt
+        $this->sendCustomerReceiptEmail($order, $business, $payment);
+
+        // Send owner sale notification email
+        $this->sendOwnerSaleEmail($order, $business);
 
         // Dispatch order_created automation trigger
         try {
-            \App\Services\Automation\AutomationTriggerDispatcher::dispatch('order_created', [
+            AutomationTriggerDispatcher::dispatch('order_created', [
                 'order_id' => $order->id,
                 'tracking_code' => $order->tracking_code,
                 'customer_id' => $order->customer_id,
@@ -152,7 +161,7 @@ class OrderFulfillmentService
     {
         try {
             if ($newStock === 0) {
-                \App\Services\Automation\AutomationTriggerDispatcher::dispatch('inventory_out_of_stock', [
+                AutomationTriggerDispatcher::dispatch('inventory_out_of_stock', [
                     'item_id' => $item->id,
                     'item_name' => $item->name,
                     'price' => (float) $item->price,
@@ -160,7 +169,7 @@ class OrderFulfillmentService
                     'stock_quantity' => 0,
                 ], $business);
             } elseif ($newStock <= 3) {
-                \App\Services\Automation\AutomationTriggerDispatcher::dispatch('inventory_low', [
+                AutomationTriggerDispatcher::dispatch('inventory_low', [
                     'item_id' => $item->id,
                     'item_name' => $item->name,
                     'price' => (float) $item->price,
@@ -179,7 +188,7 @@ class OrderFulfillmentService
     public function formatReceipt(Order $order, Business $business): string
     {
         $currency = $order->currency ?: 'NGN';
-        $formattedTotal = $currency . ' ' . number_format($order->total_amount, 2);
+        $formattedTotal = $currency.' '.number_format($order->total_amount, 2);
         $date = Carbon::parse($order->created_at)->format('d M Y, g:i A');
 
         $lines = [];
@@ -187,7 +196,7 @@ class OrderFulfillmentService
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━━━━━';
         $lines[] = "Order Number: `{$order->tracking_code}`";
         $lines[] = "Date: {$date}";
-        $lines[] = "Customer: {$order->customer_name} (" . ($order->customer_phone ?: 'Phone on file') . ')';
+        $lines[] = "Customer: {$order->customer_name} (".($order->customer_phone ?: 'Phone on file').')';
         if ($order->shipping_address) {
             $lines[] = "Delivery To: {$order->shipping_address}";
         }
@@ -202,15 +211,15 @@ class OrderFulfillmentService
             if ($item->color) {
                 $spec[] = "Color: {$item->color}";
             }
-            $specStr = !empty($spec) ? ' (' . implode(', ', $spec) . ')' : '';
-            $itemTotal = $currency . ' ' . number_format($item->total_price, 2);
+            $specStr = ! empty($spec) ? ' ('.implode(', ', $spec).')' : '';
+            $itemTotal = $currency.' '.number_format($item->total_price, 2);
             $lines[] = "• {$item->quantity}x *{$item->item_name}*{$specStr} — {$itemTotal}";
         }
 
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━━━━━';
         if ($order->shipping_fee > 0) {
-            $lines[] = 'Subtotal: ' . $currency . ' ' . number_format($order->subtotal, 2);
-            $lines[] = 'Delivery Fee: ' . $currency . ' ' . number_format($order->shipping_fee, 2);
+            $lines[] = 'Subtotal: '.$currency.' '.number_format($order->subtotal, 2);
+            $lines[] = 'Delivery Fee: '.$currency.' '.number_format($order->shipping_fee, 2);
         }
         $lines[] = "*TOTAL PAID: {$formattedTotal} (PAID ✅)*";
         $lines[] = '━━━━━━━━━━━━━━━━━━━━━━━━━';
@@ -231,7 +240,7 @@ class OrderFulfillmentService
             ->with('items')
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return null;
         }
 
@@ -250,7 +259,7 @@ class OrderFulfillmentService
         $lines[] = "{$statusEmoji} *ORDER STATUS: {$statusText}*";
         $lines[] = "Tracking Code: `{$order->tracking_code}`";
         $lines[] = "Order Date: {$date}";
-        $lines[] = "Total: {$order->currency} " . number_format($order->total_amount, 2);
+        $lines[] = "Total: {$order->currency} ".number_format($order->total_amount, 2);
         if ($order->shipping_address) {
             $lines[] = "Destination: {$order->shipping_address}";
         }
@@ -268,7 +277,7 @@ class OrderFulfillmentService
 
     protected function notifyCustomer(Order $order, Business $business, string $message): void
     {
-        if (!$order->conversation_id) {
+        if (! $order->conversation_id) {
             return;
         }
 
@@ -292,7 +301,7 @@ class OrderFulfillmentService
             $alert = "🚨 *NEW ORDER RECEIVED!*\n\n";
             $alert .= "Order: `{$order->tracking_code}`\n";
             $alert .= "Customer: {$order->customer_name} ({$order->customer_phone})\n";
-            $alert .= "Total Paid: {$order->currency} " . number_format($order->total_amount, 2) . " ✅\n";
+            $alert .= "Total Paid: {$order->currency} ".number_format($order->total_amount, 2)." ✅\n";
             $alert .= "Address: {$order->shipping_address}\n\n";
             $alert .= "*Items:*\n";
             foreach ($order->items as $item) {
@@ -306,6 +315,55 @@ class OrderFulfillmentService
             } catch (\Throwable $e) {
                 Log::warning("Failed to ping owner Telegram: {$e->getMessage()}");
             }
+        }
+    }
+
+    /**
+     * Send HTML receipt email to the customer.
+     */
+    protected function sendCustomerReceiptEmail(Order $order, Business $business, Payment $payment): void
+    {
+        $customerEmail = $order->customer_email
+            ?? $payment->metadata['customer_email']
+            ?? $payment->customer?->email
+            ?? null;
+
+        if (! $customerEmail) {
+            Log::info("No customer email available for order {$order->tracking_code} — skipping receipt email.");
+
+            return;
+        }
+
+        try {
+            $order->loadMissing('items');
+            Mail::to($customerEmail)->send(new CustomerOrderReceipt($order, $business, $payment));
+            Log::info("Customer receipt email sent to {$customerEmail} for order {$order->tracking_code}.");
+        } catch (\Throwable $e) {
+            Log::error("Failed to send customer receipt email for order {$order->tracking_code}: {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * Send sale notification email to the business owner.
+     */
+    protected function sendOwnerSaleEmail(Order $order, Business $business): void
+    {
+        $ownerEmail = $business->email
+            ?? $business->users()->wherePivot('role', 'owner')->first()?->email
+            ?? null;
+
+        if (! $ownerEmail) {
+            Log::info("No owner email found for business {$business->id} — skipping sale notification email.");
+
+            return;
+        }
+
+        try {
+            $order->loadMissing(['items', 'items.catalogItem']);
+            Mail::to($ownerEmail)->send(new OwnerSaleNotification($order, $business));
+            Log::info("Owner sale notification email sent to {$ownerEmail} for order {$order->tracking_code}.");
+        } catch (\Throwable $e) {
+            Log::error("Failed to send owner sale notification email for order {$order->tracking_code}: {$e->getMessage()}");
         }
     }
 }
