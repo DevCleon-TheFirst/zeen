@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\ConversationState;
-use App\Mail\OrderSummaryMail;
 use App\Models\AiProviderSetting;
 use App\Models\AiToolCall;
 use App\Models\Appointment;
@@ -16,7 +15,6 @@ use App\Services\Payments\PaymentGatewayService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class AiAgentOrchestrator
 {
@@ -202,7 +200,7 @@ Dominant Focus: Online Store, Retail & Products
 2. IMPORTANT: To show a product photo to the customer, you MUST call `show_product_photo` for that specific product. The system will extract the photo from the tool result and attach it to your message. NEVER say you cannot show images. ALWAYS call `show_product_photo` when the user asks for a picture.
 3. If the customer likes an item or chooses their size/color, use `add_to_cart` to place it in their cart.
 4. Allow customers to view (`view_cart`) or remove items (`remove_from_cart`) anytime.
-5. When the customer is ready to checkout, confirm their delivery address and email address, then use `checkout_cart` to generate their payment link.
+5. When the customer is ready to checkout, confirm their delivery address (and optionally phone or email if they wish to share), then use `checkout_cart` to generate their payment link. Do NOT block payment if email is not provided.
 6. If the customer asks about order status or provides a tracking code, use `track_order`.
 GUIDELINES,
         };
@@ -372,7 +370,7 @@ PROMPT;
                             'customer_phone' => ['type' => 'string', 'description' => 'Contact phone number for courier delivery'],
                             'customer_email' => ['type' => 'string', 'description' => 'Customer email address for order summary/receipt'],
                         ],
-                        'required' => ['shipping_address', 'customer_email'],
+                        'required' => ['shipping_address'],
                     ],
                 ],
             ];
@@ -672,17 +670,6 @@ PROMPT;
             // Update customer email if provided
             if ($customerEmail && $customerEmail !== $conversation->customer->email) {
                 $conversation->customer->update(['email' => $customerEmail]);
-            }
-
-            // Send Order Summary Email
-            if ($customerEmail) {
-                try {
-                    Mail::to($customerEmail)->send(
-                        new OrderSummaryMail($cart, $amount, $currency, $payment->checkout_url, $conversation->business->name)
-                    );
-                } catch (\Exception $e) {
-                    Log::error('Failed to send order summary email: '.$e->getMessage());
-                }
             }
 
             // Clear active cart in conversation once payment initialized
