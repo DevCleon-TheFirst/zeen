@@ -25,6 +25,7 @@ class Business extends Model
         'settings',
         'is_active',
         'plan',
+        'ai_credits_balance',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class Business extends Model
         return [
             'settings' => 'array',
             'is_active' => 'boolean',
+            'ai_credits_balance' => 'integer',
         ];
     }
 
@@ -98,5 +100,10 @@ class Business extends Model
     public function digitalCodes(): HasMany
     {
         return $this->hasMany(DigitalCode::class);
+    }
+
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(AiCreditTransaction::class);
     }
 }

@@ -180,6 +180,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [SuperAdminController::class, 'index'])->name('dashboard');
         Route::post('/businesses/{business}/toggle', [SuperAdminController::class, 'toggleBusiness'])->name('businesses.toggle');
         Route::patch('/businesses/{business}/plan', [SuperAdminController::class, 'updatePlan'])->name('businesses.plan');
+        Route::post('/businesses/{business}/credits', [SuperAdminController::class, 'adjustCredits'])->name('businesses.credits');
     });
 });
 
