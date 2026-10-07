@@ -30,6 +30,10 @@ class Payment extends Model
         'paid_at',
     ];
 
+    protected $appends = [
+        'amount',
+    ];
+
     protected function casts(): array
     {
         return [

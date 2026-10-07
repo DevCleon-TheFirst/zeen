@@ -376,7 +376,7 @@ const formatDate = (dateStr) => {
                                 <td class="py-2.5 font-mono text-[11px] text-stone-600">{{ p.reference }}</td>
                                 <td class="py-2.5 font-medium text-[#241e19]">{{ p.business?.name || '-' }}</td>
                                 <td class="py-2.5 text-stone-600">{{ p.customer?.name || p.customer_name || 'Customer' }}</td>
-                                <td class="py-2.5 font-bold text-emerald-700">{{ p.currency }} {{ Number(p.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }) }}</td>
+                                <td class="py-2.5 font-bold text-emerald-700">{{ p.currency || 'NGN' }} {{ Number(p.amount ?? (p.amount_kobo ? p.amount_kobo / 100 : 0)).toLocaleString('en-NG', { minimumFractionDigits: 2 }) }}</td>
                                 <td class="py-2.5 uppercase text-[10px] text-stone-500">{{ p.gateway }}</td>
                                 <td class="py-2.5 text-stone-400 text-[11px]">{{ formatDate(p.created_at) }}</td>
                                 <td class="py-2.5 text-right">
