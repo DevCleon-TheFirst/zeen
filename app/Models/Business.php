@@ -106,4 +106,9 @@ class Business extends Model
     {
         return $this->hasMany(AiCreditTransaction::class);
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }
