@@ -51,6 +51,12 @@ class HandleInertiaRequests extends Middleware
 
                     return $list;
                 },
+                'is_impersonating' => $request->session()->has('impersonated_business_id'),
+                'impersonated_business' => function () use ($request) {
+                    $id = $request->session()->get('impersonated_business_id');
+
+                    return $id ? Business::select(['id', 'name', 'slug', 'industry'])->find($id) : null;
+                },
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

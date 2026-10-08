@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, Link } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     stats: {
@@ -25,6 +26,24 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const togglingId = ref(null);
 const updatingPlanId = ref(null);
+
+// Upstream DeepSeek live balance state
+const liveDeepseek = ref(props.stats?.deepseek_balance || null);
+const refreshingBalance = ref(false);
+
+const refreshDeepSeekBalance = async () => {
+    refreshingBalance.value = true;
+    try {
+        const res = await axios.get(route('admin.deepseek-balance'));
+        if (res.data) {
+            liveDeepseek.value = res.data;
+        }
+    } catch (err) {
+        console.error('Failed to refresh DeepSeek balance:', err);
+    } finally {
+        refreshingBalance.value = false;
+    }
+};
 
 // Modal state for Adjusting Credits
 const showCreditModal = ref(false);
@@ -71,8 +90,8 @@ const changePlan = (business, newPlan) => {
     });
 };
 
-const switchWorkspace = (business) => {
-    router.post(route('businesses.switch', { business: business.id }));
+const inspectStore = (business) => {
+    router.post(route('admin.businesses.impersonate', { business: business.id }));
 };
 
 let searchTimeout = null;
@@ -178,11 +197,74 @@ const formatDate = (dateStr) => {
                 </div>
             </div>
 
-            <!-- SECTION 2: AI CREDITS, TOKENS & SYSTEM INFRASTRUCTURE -->
-            <div>
-                <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2.5">
-                    2. AI Metering, Provider Cost &amp; Queue Infrastructure
-                </p>
+            <!-- SECTION 2: AI CREDITS, UPSTREAM DEEPSEEK & QUEUE INFRASTRUCTURE -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                        2. AI Metering, Upstream DeepSeek Balance &amp; Workers
+                    </p>
+                    <button
+                        @click="refreshDeepSeekBalance"
+                        :disabled="refreshingBalance"
+                        class="text-[11px] text-amber-800 hover:text-amber-950 font-medium inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                        title="Query live remaining balance directly from api.deepseek.com/user/balance"
+                    >
+                        <svg class="w-3 h-3 text-amber-700" :class="refreshingBalance ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>{{ refreshingBalance ? 'Querying DeepSeek...' : 'Live Check DeepSeek Balance' }}</span>
+                    </button>
+                </div>
+
+                <!-- Live DeepSeek Wholesale Account Banner -->
+                <div
+                    v-if="liveDeepseek"
+                    class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-xs"
+                    :class="liveDeepseek.success && liveDeepseek.total_balance > 5
+                        ? 'bg-gradient-to-r from-emerald-50 via-white to-amber-50/20 border-emerald-300 text-stone-800'
+                        : (liveDeepseek.success && liveDeepseek.total_balance > 0
+                            ? 'bg-amber-50 border-amber-300 text-amber-950'
+                            : 'bg-rose-50 border-rose-300 text-rose-950')"
+                >
+                    <div class="flex items-start sm:items-center gap-3.5">
+                        <div
+                            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-extrabold text-xs shadow-xs"
+                            :class="liveDeepseek.success && liveDeepseek.total_balance > 5 ? 'bg-emerald-600' : 'bg-amber-600'"
+                        >
+                            AI
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-[#241e19]">
+                                    Upstream Wholesale Credit (DeepSeek API)
+                                </span>
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                    :class="liveDeepseek.is_available ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
+                                >
+                                    {{ liveDeepseek.is_available ? '● API Available & Active' : 'Depleted / Inactive' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-stone-600 mt-0.5">
+                                Verified via <code class="text-[11px] font-mono bg-white border border-stone-200 px-1.5 py-0.5 rounded">api.deepseek.com/user/balance</code>
+                                <span v-if="liveDeepseek.topped_up_balance !== undefined" class="ml-2 text-stone-500">
+                                    &middot; Cash Top-up: <strong>${{ Number(liveDeepseek.topped_up_balance).toFixed(2) }}</strong> &middot; Free Grant: <strong>${{ Number(liveDeepseek.granted_balance).toFixed(2) }}</strong>
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 self-end sm:self-auto">
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">Remaining Credit</span>
+                            <span class="text-2xl font-black text-emerald-700 tracking-tight">
+                                {{ liveDeepseek.formatted || ('$' + Number(liveDeepseek.total_balance || 0).toFixed(2) + ' USD') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Sub-metrics Grid -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="p-4 bg-white border border-[#e8e2d9] rounded-xl shadow-xs">
                         <p class="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Credits in Circulation</p>
@@ -307,13 +389,13 @@ const formatDate = (dateStr) => {
                                     </span>
                                 </td>
                                 <td class="p-3.5 text-right space-x-2">
-                                    <!-- Switch to workspace (Impersonation) -->
+                                    <!-- Inspect Store (Impersonation) -->
                                     <button
-                                        @click="switchWorkspace(b)"
-                                        title="Switch active workspace to this store"
-                                        class="px-2 py-1 text-[11px] font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 rounded transition-colors cursor-pointer"
+                                        @click="inspectStore(b)"
+                                        title="Inspect this store in merchant mode"
+                                        class="px-2 py-1 text-[11px] font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded transition-colors cursor-pointer border border-amber-300"
                                     >
-                                        Switch To
+                                        Inspect Store
                                     </button>
 
                                     <!-- Toggle Active / Suspended -->

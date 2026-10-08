@@ -8,7 +8,25 @@ import axios from 'axios';
 const props = defineProps({
     setting: Object,
     availableProviders: Array,
+    deepseek_balance: Object,
 });
+
+const deepseekBalance = ref(props.deepseek_balance || null);
+const checkingBalance = ref(false);
+
+const checkDeepSeekBalance = async () => {
+    checkingBalance.value = true;
+    try {
+        const res = await axios.get(route('settings.ai.balance'));
+        if (res.data) {
+            deepseekBalance.value = res.data;
+        }
+    } catch (err) {
+        console.error('Failed to query DeepSeek balance:', err);
+    } finally {
+        checkingBalance.value = false;
+    }
+};
 
 const form = useForm({
     provider: props.setting?.provider || 'deepseek',
@@ -187,6 +205,64 @@ const runConnectionTest = async () => {
                             Your API key is encrypted with AES-256 before storage and never exposed in frontend bundles.
                         </p>
                         <InputError class="mt-1" :message="form.errors.api_key" />
+
+                        <!-- DeepSeek Live Account Balance Widget -->
+                        <div
+                            v-if="form.provider === 'deepseek'"
+                            class="mt-3 p-3.5 rounded-lg border border-amber-300/80 bg-amber-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-7 h-7 rounded-md bg-amber-700 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs">
+                                    💳
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-stone-900 text-xs">DeepSeek Live Balance</h4>
+                                        <span
+                                            v-if="deepseekBalance?.is_available"
+                                            class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"
+                                        >
+                                            ● API Active &amp; Funded
+                                        </span>
+                                        <span
+                                            v-else-if="deepseekBalance && !deepseekBalance.is_available"
+                                            class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800"
+                                        >
+                                            ● Inactive / Unfunded
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-stone-600 mt-0.5">
+                                        Queried directly from <code class="font-mono bg-white border border-stone-200 px-1 py-0.2 rounded text-[10px]">https://api.deepseek.com/user/balance</code>
+                                    </p>
+                                    <div v-if="deepseekBalance?.success" class="mt-0.5 text-[11px] text-stone-500">
+                                        Cash Top-up: <strong>${{ Number(deepseekBalance.topped_up_balance || 0).toFixed(2) }}</strong> &middot; Promotional Grant: <strong>${{ Number(deepseekBalance.granted_balance || 0).toFixed(2) }}</strong>
+                                    </div>
+                                    <div v-else-if="deepseekBalance?.error" class="mt-0.5 text-[11px] text-rose-600 font-medium">
+                                        {{ deepseekBalance.error }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 self-end sm:self-center">
+                                <div v-if="deepseekBalance?.success" class="text-right">
+                                    <span class="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">Remaining Funds</span>
+                                    <span class="text-lg font-black text-emerald-700">
+                                        {{ deepseekBalance.formatted || ('$' + Number(deepseekBalance.total_balance || 0).toFixed(2) + ' USD') }}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="checkDeepSeekBalance"
+                                    :disabled="checkingBalance || !setting.has_api_key"
+                                    class="px-2.5 py-1.5 rounded-md border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shadow-xs"
+                                >
+                                    <svg class="w-3 h-3 text-stone-600" :class="checkingBalance ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>{{ checkingBalance ? 'Querying...' : 'Check Live Balance' }}</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Base URL -->

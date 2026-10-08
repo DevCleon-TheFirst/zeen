@@ -43,6 +43,11 @@ class AiSettingController extends Controller
                 : '••••••••';
         }
 
+        $deepseekBalance = null;
+        if ($setting->provider === 'deepseek' && ! empty($setting->api_key)) {
+            $deepseekBalance = $this->aiService->getDeepSeekBalance($setting->api_key);
+        }
+
         return Inertia::render('Settings/Ai', [
             'setting' => [
                 'id' => $setting->id,
@@ -57,6 +62,7 @@ class AiSettingController extends Controller
                 'last_tested_at' => $setting->last_tested_at?->toIso8601String(),
                 'last_test_passed' => $setting->last_test_passed,
             ],
+            'deepseek_balance' => $deepseekBalance,
             'availableProviders' => [
                 [
                     'id' => 'deepseek',
@@ -140,5 +146,16 @@ class AiSettingController extends Controller
         $result = $this->aiService->testConnection($setting);
 
         return response()->json($result);
+    }
+
+    public function balance(): JsonResponse
+    {
+        $business = TenantContext::get();
+        abort_unless($business, 404);
+
+        $setting = AiProviderSetting::where('business_id', $business->id)->first();
+        $balance = $this->aiService->getDeepSeekBalance($setting?->api_key);
+
+        return response()->json($balance);
     }
 }

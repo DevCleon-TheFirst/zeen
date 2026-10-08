@@ -6,6 +6,13 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const business = computed(() => user.value?.business);
 const businesses = computed(() => page.props.auth.businesses || []);
+const isSuperAdmin = computed(() => Boolean(user.value?.is_super_admin));
+const isImpersonating = computed(() => Boolean(page.props.auth?.is_impersonating));
+const impersonatedBusiness = computed(() => page.props.auth?.impersonated_business);
+
+// Super admin is in platform operator mode if they are a super admin AND NOT inspecting a specific store
+const isAdminMode = computed(() => isSuperAdmin.value && !isImpersonating.value);
+
 const sidebarOpen = ref(false);
 
 const workspaceDropdownOpen = ref(false);
@@ -28,6 +35,10 @@ const newBizForm = ref({
     processing: false,
     errors: {},
 });
+
+function leaveImpersonation() {
+    router.post(route('admin.leave-impersonation'));
+}
 
 function switchWorkspace(bizId) {
     workspaceDropdownOpen.value = false;
@@ -92,7 +103,7 @@ function logout() {
         >
             <!-- Platform Brand Logo Header -->
             <div class="px-4 py-3 border-b border-[#3b2c22] bg-[#1a110b] flex items-center justify-center">
-                <Link :href="route('dashboard')" class="group">
+                <Link :href="isAdminMode ? route('admin.dashboard') : route('dashboard')" class="group">
                     <img
                         src="/images/logo.png"
                         alt="ZEEN"
@@ -102,8 +113,51 @@ function logout() {
                 </Link>
             </div>
 
-            <!-- Brand & Workspace Header with Switcher Dropdown -->
-            <div class="relative px-3 py-2.5 border-b border-[#3b2c22]">
+            <!-- Workspace Header / Mode Selector -->
+
+            <!-- Case 1: Pure Platform Operator HQ (Super Admin not inspecting any store) -->
+            <div v-if="isAdminMode" class="px-3 py-2.5 border-b border-[#3b2c22]">
+                <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-[#1a110b] border border-[#4a3324] shadow-xs">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm border border-amber-500/30">
+                        HQ
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold text-white truncate leading-tight">
+                            Platform Command
+                        </p>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="text-[10px] text-amber-300 font-mono tracking-wide uppercase font-semibold">
+                                Super Admin
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case 2: Super Admin Inspecting a Store (Impersonation Mode) -->
+            <div v-else-if="isImpersonating" class="px-3 py-2.5 border-b border-amber-800/60 bg-amber-950/30">
+                <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-[#291e17] border border-amber-600/50 shadow-xs">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1 text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                            <span>🛡️ Inspecting Store</span>
+                        </div>
+                        <p class="text-xs font-bold text-white truncate mt-0.5">
+                            {{ impersonatedBusiness?.name || business?.name || 'Client Store' }}
+                        </p>
+                    </div>
+                    <button
+                        @click="leaveImpersonation"
+                        class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold rounded transition-colors flex-shrink-0 cursor-pointer shadow-xs"
+                        title="Exit inspection and return to Platform HQ"
+                    >
+                        Exit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Case 3: Regular Store Owner / Merchant Workspace Header with Switcher Dropdown -->
+            <div v-else class="relative px-3 py-2.5 border-b border-[#3b2c22]">
                 <button
                     @click="workspaceDropdownOpen = !workspaceDropdownOpen"
                     class="w-full flex items-center justify-between gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#3b2c22]/70 text-left transition-colors group cursor-pointer"
@@ -117,7 +171,7 @@ function logout() {
                             <p class="text-xs font-semibold text-white truncate leading-tight">
                                 {{ business?.name || 'Omnichannel Suite' }}
                             </p>
-                            <div class="flex items-center gap-1 mt-0.5">
+                            <div class="flex items-center gap-1.5 mt-0.5">
                                 <span class="text-[10px] text-amber-200/90 truncate font-medium">
                                     {{ industryMeta[business?.industry]?.icon || '⚡' }} {{ industryMeta[business?.industry]?.label || (business?.industry || 'Store') }}
                                 </span>
@@ -189,122 +243,200 @@ function logout() {
             <!-- Navigation -->
             <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-5 text-xs">
 
-                <!-- Overview -->
-                <div>
-                    <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Overview</p>
-                    <Link
-                        :href="route('dashboard')"
-                        class="nav-link"
-                        :class="route().current('dashboard') ? 'nav-link-active' : ''"
-                    >
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor"/>
-                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor"/>
-                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor"/>
-                        </svg>
-                        <span>Dashboard</span>
-                    </Link>
-                </div>
+                <!-- ── PLATFORM OPERATOR HQ NAVIGATION (When Super Admin is NOT inspecting a store) ── -->
+                <template v-if="isAdminMode">
+                    <!-- Platform Operations -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-amber-400 font-mono">Platform HQ</p>
+                        <div class="space-y-0.5">
+                            <Link
+                                :href="route('admin.dashboard')"
+                                class="nav-link"
+                                :class="route().current('admin.*') ? 'nav-link-active !bg-amber-900/40 !text-amber-100 font-semibold' : ''"
+                            >
+                                <svg class="w-4 h-4 flex-shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                <span>Command Center</span>
+                            </Link>
+                        </div>
+                    </div>
 
-                <!-- Communications -->
-                <div>
-                    <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Communications</p>
-                    <div class="space-y-0.5">
-                        <Link :href="route('inbox.index')" class="nav-link" :class="route().current('inbox.*') ? 'nav-link-active' : ''">
+                    <!-- Infrastructure & System Core -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Platform Core</p>
+                        <div class="space-y-0.5">
+                            <Link
+                                :href="route('setup.index')"
+                                class="nav-link"
+                                :class="route().current('setup.*') ? 'nav-link-active' : ''"
+                            >
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>System &amp; Webhooks</span>
+                            </Link>
+                            <Link
+                                :href="route('settings.ai')"
+                                class="nav-link"
+                                :class="route().current('settings.*') ? 'nav-link-active' : ''"
+                            >
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                                <span>AI Engine &amp; Providers</span>
+                            </Link>
+                            <Link
+                                :href="route('staff.index')"
+                                class="nav-link"
+                                :class="route().current('staff.*') ? 'nav-link-active' : ''"
+                            >
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                                <span>Platform Staff &amp; Roles</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- Tenant Directory Quick Box -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Tenants &amp; Stores</p>
+                        <div class="px-3 py-2.5 rounded-xl bg-[#1d140e] border border-[#3b2c22] text-xs">
+                            <div class="flex items-center justify-between text-stone-300 mb-1">
+                                <span class="text-[11px] text-stone-400">Total Registered</span>
+                                <span class="font-bold text-amber-300 text-xs">{{ businesses.length }}</span>
+                            </div>
+                            <p class="text-[10px] text-stone-400 leading-normal">
+                                Click "Inspect Store" on any client store to enter Store Inspection mode.
+                            </p>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- ── REGULAR MERCHANT / STORE NAVIGATION ── -->
+                <template v-else>
+                    <!-- Overview -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Overview</p>
+                        <Link
+                            :href="route('dashboard')"
+                            class="nav-link"
+                            :class="route().current('dashboard') ? 'nav-link-active' : ''"
+                        >
                             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor"/>
                             </svg>
-                            <span>Live Inbox</span>
-                        </Link>
-                        <Link :href="route('automations.index')" class="nav-link" :class="route().current('automations.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            <span>Automations</span>
+                            <span>Dashboard</span>
                         </Link>
                     </div>
-                </div>
 
-                <!-- Integrations -->
-                <div>
-                    <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Integrations</p>
-                    <div class="space-y-0.5">
-                        <Link :href="route('channels.index')" class="nav-link" :class="route().current('channels.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
-                            </svg>
-                            <span>Connected Channels</span>
-                        </Link>
-                        <Link :href="route('settings.ai')" class="nav-link" :class="route().current('settings.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                            </svg>
-                            <span>AI Settings</span>
-                        </Link>
-                        <Link :href="route('setup.index')" class="nav-link" :class="route().current('setup.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            <span>System &amp; Webhooks</span>
-                        </Link>
+                    <!-- Communications -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Communications</p>
+                        <div class="space-y-0.5">
+                            <Link :href="route('inbox.index')" class="nav-link" :class="route().current('inbox.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                </svg>
+                                <span>Live Inbox</span>
+                            </Link>
+                            <Link :href="route('automations.index')" class="nav-link" :class="route().current('automations.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <span>Automations</span>
+                            </Link>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Operations -->
-                <div>
-                    <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Operations</p>
-                    <div class="space-y-0.5">
-                        <Link :href="route('orders.index')" class="nav-link" :class="route().current('orders.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                            </svg>
-                            <span>Orders &amp; Tracking</span>
-                        </Link>
-                        <Link :href="route('catalog.index')" class="nav-link" :class="route().current('catalog.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                            </svg>
-                            <span>Catalog &amp; Stock</span>
-                        </Link>
-                        <Link :href="route('appointments.index')" class="nav-link" :class="route().current('appointments.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            <span>Appointments</span>
-                        </Link>
-                        <Link :href="route('payments.index')" class="nav-link" :class="route().current('payments.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                            </svg>
-                            <span>Gateways &amp; Ledger</span>
-                        </Link>
-                        <Link :href="route('vouchers.index')" class="nav-link" :class="route().current('vouchers.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-                            </svg>
-                            <span>Vouchers &amp; Codes</span>
-                        </Link>
-                        <Link :href="route('staff.index')" class="nav-link" :class="route().current('staff.*') ? 'nav-link-active' : ''">
-                            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                            </svg>
-                            <span>Staff</span>
-                        </Link>
+                    <!-- Integrations -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Integrations</p>
+                        <div class="space-y-0.5">
+                            <Link :href="route('channels.index')" class="nav-link" :class="route().current('channels.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                                </svg>
+                                <span>Connected Channels</span>
+                            </Link>
+                            <Link :href="route('settings.ai')" class="nav-link" :class="route().current('settings.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                                <span>AI Settings</span>
+                            </Link>
+                            <Link :href="route('setup.index')" class="nav-link" :class="route().current('setup.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>System &amp; Webhooks</span>
+                            </Link>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Super Admin Section (Only for platform super admins) -->
-                <div v-if="user?.is_super_admin" class="pt-2 border-t border-[#3b2c22]">
-                    <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-amber-400">Platform Super Admin</p>
-                    <Link :href="route('admin.dashboard')" class="nav-link text-amber-200 hover:text-white" :class="route().current('admin.*') ? 'nav-link-active !bg-amber-900/40 !text-amber-100' : ''">
-                        <svg class="w-4 h-4 flex-shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                        <span>Platform Command</span>
-                    </Link>
-                </div>
+                    <!-- Operations -->
+                    <div>
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">Operations</p>
+                        <div class="space-y-0.5">
+                            <Link :href="route('orders.index')" class="nav-link" :class="route().current('orders.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                </svg>
+                                <span>Orders &amp; Tracking</span>
+                            </Link>
+                            <Link :href="route('catalog.index')" class="nav-link" :class="route().current('catalog.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
+                                <span>Catalog &amp; Stock</span>
+                            </Link>
+                            <Link :href="route('appointments.index')" class="nav-link" :class="route().current('appointments.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Appointments</span>
+                            </Link>
+                            <Link :href="route('payments.index')" class="nav-link" :class="route().current('payments.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                <span>Gateways &amp; Ledger</span>
+                            </Link>
+                            <Link :href="route('vouchers.index')" class="nav-link" :class="route().current('vouchers.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                                </svg>
+                                <span>Vouchers &amp; Codes</span>
+                            </Link>
+                            <Link :href="route('staff.index')" class="nav-link" :class="route().current('staff.*') ? 'nav-link-active' : ''">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                                <span>Staff</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- Platform Return link (if super admin inspecting a store) -->
+                    <div v-if="user?.is_super_admin" class="pt-2 border-t border-[#3b2c22]">
+                        <p class="px-2.5 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-amber-400">Platform Super Admin</p>
+                        <button
+                            @click="leaveImpersonation"
+                            class="w-full nav-link text-amber-200 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 cursor-pointer text-left"
+                        >
+                            <svg class="w-4 h-4 flex-shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span>Return to Platform HQ</span>
+                        </button>
+                    </div>
+                </template>
 
             </nav>
 
@@ -316,11 +448,13 @@ function logout() {
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-xs font-medium text-white truncate">{{ user?.name }}</p>
-                        <p class="text-[10px] text-stone-400 capitalize truncate">{{ user?.role || 'Staff' }}</p>
+                        <p class="text-[10px] text-stone-400 capitalize truncate">
+                            {{ isAdminMode ? 'Super Administrator' : (user?.role || 'Staff') }}
+                        </p>
                     </div>
                     <button
                         @click="logout"
-                        class="p-1 rounded text-stone-400 hover:text-white transition-colors"
+                        class="p-1 rounded text-stone-400 hover:text-white transition-colors cursor-pointer"
                         title="Sign Out"
                     >
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -333,6 +467,30 @@ function logout() {
 
         <!-- ── MAIN AREA ─────────────────────────────────── -->
         <div class="flex flex-col flex-1 min-w-0 lg:ml-60">
+
+            <!-- Sticky Impersonation Alert Banner -->
+            <div
+                v-if="isImpersonating"
+                class="bg-gradient-to-r from-[#1a110b] via-[#2d1e15] to-[#1a110b] text-white border-b border-amber-500/40 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-xs sticky top-0 z-40 shadow-md"
+            >
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-stone-950 uppercase tracking-wider flex-shrink-0">
+                        🛡️ STORE INSPECTION
+                    </span>
+                    <span class="text-stone-200 truncate">
+                        You are inspecting <strong>{{ impersonatedBusiness?.name || business?.name }}</strong> in Client Store Mode.
+                    </span>
+                </div>
+                <button
+                    @click="leaveImpersonation"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition-colors shadow-xs flex-shrink-0 cursor-pointer"
+                >
+                    <span>Return to Platform Command</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </button>
+            </div>
 
             <!-- Top bar -->
             <header class="h-14 flex items-center justify-between px-3.5 sm:px-6 sticky top-0 z-10 flex-shrink-0 bg-white border-b border-[#e8e2d9]">
@@ -353,8 +511,16 @@ function logout() {
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Dominant Focus Mode Pill / Quick Switcher -->
+                    <!-- Platform Status Pill (Admin Mode) OR Dominant Focus Pill (Merchant Mode) -->
+                    <div v-if="isAdminMode" class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-emerald-300 bg-emerald-50 text-emerald-900 shadow-xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="font-semibold">Platform HQ</span>
+                        <span class="text-stone-400">|</span>
+                        <span class="text-emerald-700">All Systems Operational</span>
+                    </div>
+
                     <button
+                        v-else
                         @click="showDominantModeModal = true"
                         class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-amber-300/80 bg-amber-50 text-amber-900 hover:bg-amber-100 transition-colors shadow-xs cursor-pointer"
                         title="Click to change the dominant operating focus mode of this business"

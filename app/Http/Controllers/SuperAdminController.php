@@ -9,6 +9,8 @@ use App\Models\Message;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\AiService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +84,9 @@ class SuperAdminController extends Controller
             $gatewayHealthy = false;
         }
 
+        // ─── Live Upstream DeepSeek Balance ─────────────────────────────────
+        $deepseekBalance = app(AiService::class)->getDeepSeekBalance();
+
         $stats = [
             'total_businesses' => Business::count(),
             'active_businesses' => Business::where('is_active', true)->count(),
@@ -101,6 +106,7 @@ class SuperAdminController extends Controller
             'total_tokens_consumed' => $totalTokensConsumed,
             'total_ai_cost_usd' => $totalAiCostUsd,
             'estimated_ai_cost_ngn' => $estimatedAiCostNgn,
+            'deepseek_balance' => $deepseekBalance,
             'pending_jobs' => $pendingJobs,
             'failed_jobs' => $failedJobs,
             'gateway_healthy' => $gatewayHealthy,
@@ -119,6 +125,13 @@ class SuperAdminController extends Controller
                 'search' => $search,
             ],
         ]);
+    }
+
+    public function deepseekBalance(): JsonResponse
+    {
+        $balance = app(AiService::class)->getDeepSeekBalance();
+
+        return response()->json($balance);
     }
 
     public function toggleBusiness(Business $business): RedirectResponse
@@ -159,5 +172,21 @@ class SuperAdminController extends Controller
         ]);
 
         return back()->with('success', "Added {$validated['amount']} credits to {$business->name}. New balance: {$newBalance}");
+    }
+
+    public function impersonate(Request $request, Business $business): RedirectResponse
+    {
+        $user = $request->user();
+        $user->update(['business_id' => $business->id]);
+        session(['impersonated_business_id' => $business->id]);
+
+        return redirect()->route('dashboard')->with('success', "Now inspecting {$business->name} as Administrator.");
+    }
+
+    public function leaveImpersonation(Request $request): RedirectResponse
+    {
+        session()->forget('impersonated_business_id');
+
+        return redirect()->route('admin.dashboard')->with('success', 'Returned to Platform Command Center.');
     }
 }

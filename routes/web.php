@@ -61,6 +61,12 @@ Route::get('/payments/{payment:reference}/success', [PaymentWebhookController::c
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
+
+    // If super admin visits /dashboard without actively inspecting a store, route to admin command
+    if ($user && $user->is_super_admin && ! session()->has('impersonated_business_id')) {
+        return redirect()->route('admin.dashboard');
+    }
+
     $business = $user?->business;
 
     $defaultTrend = [2, 5, 3, 8, 6, 9, 7];
@@ -111,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings/ai', [AiSettingController::class, 'index'])->name('settings.ai');
     Route::post('/settings/ai', [AiSettingController::class, 'update'])->name('settings.ai.update');
     Route::post('/settings/ai/test', [AiSettingController::class, 'test'])->name('settings.ai.test');
+    Route::get('/settings/ai/balance', [AiSettingController::class, 'balance'])->name('settings.ai.balance');
 
     // Channels (WhatsApp, Telegram, Messenger)
     Route::get('/channels', [ChannelController::class, 'index'])->name('channels.index');
@@ -181,6 +188,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/businesses/{business}/toggle', [SuperAdminController::class, 'toggleBusiness'])->name('businesses.toggle');
         Route::patch('/businesses/{business}/plan', [SuperAdminController::class, 'updatePlan'])->name('businesses.plan');
         Route::post('/businesses/{business}/credits', [SuperAdminController::class, 'adjustCredits'])->name('businesses.credits');
+        Route::post('/businesses/{business}/impersonate', [SuperAdminController::class, 'impersonate'])->name('businesses.impersonate');
+        Route::post('/leave-impersonation', [SuperAdminController::class, 'leaveImpersonation'])->name('leave-impersonation');
+        Route::get('/deepseek-balance', [SuperAdminController::class, 'deepseekBalance'])->name('deepseek-balance');
     });
 });
 

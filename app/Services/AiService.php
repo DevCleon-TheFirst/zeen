@@ -122,4 +122,95 @@ class AiService
             ];
         }
     }
+
+    /**
+     * Query remaining credit balance from DeepSeek API.
+     *
+     * @return array{
+     *     success: bool,
+     *     is_available: bool,
+     *     total_balance: float,
+     *     granted_balance: float,
+     *     topped_up_balance: float,
+     *     currency: string,
+     *     formatted: string,
+     *     error?: string
+     * }
+     */
+    public function getDeepSeekBalance(?string $apiKey = null): array
+    {
+        if (empty($apiKey)) {
+            $apiKey = env('DEEPSEEK_API_KEY');
+
+            if (empty($apiKey)) {
+                $setting = AiProviderSetting::withoutGlobalScopes()
+                    ->where('provider', 'deepseek')
+                    ->whereNotNull('api_key')
+                    ->where('api_key', '!=', '')
+                    ->where('api_key', 'not like', '%placeholder%')
+                    ->first();
+                $apiKey = $setting?->api_key;
+            }
+        }
+
+        if (empty($apiKey)) {
+            return [
+                'success' => false,
+                'is_available' => false,
+                'total_balance' => 0.0,
+                'granted_balance' => 0.0,
+                'topped_up_balance' => 0.0,
+                'currency' => 'USD',
+                'formatted' => '$0.00 USD',
+                'error' => 'No DeepSeek API key configured.',
+            ];
+        }
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(6)
+                ->get('https://api.deepseek.com/user/balance');
+
+            if ($response->failed()) {
+                return [
+                    'success' => false,
+                    'is_available' => false,
+                    'total_balance' => 0.0,
+                    'granted_balance' => 0.0,
+                    'topped_up_balance' => 0.0,
+                    'currency' => 'USD',
+                    'formatted' => '$0.00 USD',
+                    'error' => $response->json('error.message') ?? 'DeepSeek balance query failed (HTTP '.$response->status().')',
+                ];
+            }
+
+            $json = $response->json();
+            $info = $json['balance_infos'][0] ?? [];
+            $total = (float) ($info['total_balance'] ?? 0.0);
+            $granted = (float) ($info['granted_balance'] ?? 0.0);
+            $toppedUp = (float) ($info['topped_up_balance'] ?? 0.0);
+            $currency = $info['currency'] ?? 'USD';
+
+            return [
+                'success' => true,
+                'is_available' => (bool) ($json['is_available'] ?? ($total > 0)),
+                'total_balance' => $total,
+                'granted_balance' => $granted,
+                'topped_up_balance' => $toppedUp,
+                'currency' => $currency,
+                'formatted' => '$'.number_format($total, 2).' '.$currency,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'is_available' => false,
+                'total_balance' => 0.0,
+                'granted_balance' => 0.0,
+                'topped_up_balance' => 0.0,
+                'currency' => 'USD',
+                'formatted' => '$0.00 USD',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
 }
