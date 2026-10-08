@@ -17,6 +17,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SystemSetupController;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,22 +34,20 @@ Route::get('/', function () {
 })->name('home');
 
 if (app()->isLocal()) {
-    Route::get('/local-admin-auth', function () {
-        $admin = \App\Models\User::where('is_super_admin', true)->first();
+    Route::get('/local-admin-auth', function (Request $request) {
+        $admin = User::where('is_super_admin', true)->first();
         auth()->login($admin);
 
-        return redirect()->route('admin.dashboard');
+        return redirect()->route('admin.dashboard', $request->query());
     });
 
     Route::get('/local-ai-settings', function () {
-        $admin = \App\Models\User::where('is_super_admin', true)->first();
+        $admin = User::where('is_super_admin', true)->first();
         auth()->login($admin);
 
         return redirect()->route('settings.ai');
     });
 }
-
-
 
 Route::post('/contact', function (Request $request) {
     $validated = $request->validate([

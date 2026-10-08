@@ -511,12 +511,12 @@ function logout() {
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Platform Status Pill (Admin Mode) OR Dominant Focus Pill (Merchant Mode) -->
-                    <div v-if="isAdminMode" class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-emerald-300 bg-emerald-50 text-emerald-900 shadow-xs">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="font-semibold">Platform HQ</span>
-                        <span class="text-stone-400">|</span>
-                        <span class="text-emerald-700">All Systems Operational</span>
+                    <!-- Platform Status Pill (Admin Mode) -->
+                    <div v-if="isAdminMode" class="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border border-emerald-200 bg-emerald-50/80 text-emerald-800">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="font-semibold text-[11px]">Platform HQ</span>
+                        <span class="text-stone-300">&middot;</span>
+                        <span class="text-emerald-700 text-[11px]">Operational</span>
                     </div>
 
                     <button

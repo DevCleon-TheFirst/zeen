@@ -112,6 +112,23 @@ class SuperAdminController extends Controller
             'gateway_healthy' => $gatewayHealthy,
         ];
 
+        $userSearch = trim($request->input('user_search', ''));
+        $usersQuery = User::with(['business'])->latest();
+
+        if ($userSearch !== '') {
+            $usersQuery->where(function ($q) use ($userSearch) {
+                $q->where('name', 'like', "%{$userSearch}%")
+                    ->orWhere('email', 'like', "%{$userSearch}%")
+                    ->orWhere('phone', 'like', "%{$userSearch}%")
+                    ->orWhereHas('business', function ($bq) use ($userSearch) {
+                        $bq->where('name', 'like', "%{$userSearch}%")
+                            ->orWhere('slug', 'like', "%{$userSearch}%");
+                    });
+            });
+        }
+
+        $users = $usersQuery->paginate(15, ['*'], 'users_page')->withQueryString();
+
         $recentPayments = Payment::with(['business', 'customer'])
             ->latest()
             ->limit(8)
@@ -119,10 +136,12 @@ class SuperAdminController extends Controller
 
         return Inertia::render('Admin/Dashboard', [
             'businesses' => $businesses,
+            'users' => $users,
             'stats' => $stats,
             'recentPayments' => $recentPayments,
             'filters' => [
                 'search' => $search,
+                'user_search' => $userSearch,
             ],
         ]);
     }
