@@ -32,6 +32,24 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+if (app()->isLocal()) {
+    Route::get('/local-admin-auth', function () {
+        $admin = \App\Models\User::where('is_super_admin', true)->first();
+        auth()->login($admin);
+
+        return redirect()->route('admin.dashboard');
+    });
+
+    Route::get('/local-ai-settings', function () {
+        $admin = \App\Models\User::where('is_super_admin', true)->first();
+        auth()->login($admin);
+
+        return redirect()->route('settings.ai');
+    });
+}
+
+
+
 Route::post('/contact', function (Request $request) {
     $validated = $request->validate([
         'name' => 'required|string|max:255',
