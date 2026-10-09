@@ -16,8 +16,9 @@ class AutomationExecutionController extends Controller
 {
     public function index(Request $request, AutomationWorkflow $workflow): Response
     {
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
         $business = TenantContext::get();
-        abort_unless($business && $workflow->business_id === $business->id, 403);
+        abort_unless($isSuperAdmin || ($business && $workflow->business_id === $business->id), 403);
 
         $workflow->loadMissing('nodes');
 
@@ -62,10 +63,10 @@ class AutomationExecutionController extends Controller
 
     public function show(AutomationWorkflow $workflow, AutomationExecution $execution): JsonResponse
     {
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
         $business = TenantContext::get();
         abort_unless(
-            $business &&
-            $workflow->business_id === $business->id &&
+            ($isSuperAdmin || ($business && $workflow->business_id === $business->id)) &&
             $execution->workflow_id === $workflow->id,
             403
         );
@@ -79,10 +80,10 @@ class AutomationExecutionController extends Controller
 
     public function retry(AutomationWorkflow $workflow, AutomationExecution $execution): RedirectResponse
     {
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
         $business = TenantContext::get();
         abort_unless(
-            $business &&
-            $workflow->business_id === $business->id &&
+            ($isSuperAdmin || ($business && $workflow->business_id === $business->id)) &&
             $execution->workflow_id === $workflow->id,
             403
         );

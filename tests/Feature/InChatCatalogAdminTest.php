@@ -10,6 +10,8 @@ use App\Models\BusinessCatalogItem;
 use App\Models\BusinessChannel;
 use App\Models\Conversation;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use App\Services\Catalog\ChatAdminOpsService;
 use Illuminate\Http\UploadedFile;
@@ -35,6 +37,7 @@ beforeEach(function () {
         'password' => bcrypt('password'),
         'business_id' => $this->business->id,
         'role' => UserRole::Owner,
+        'phone' => '123456789',
         'is_active' => true,
     ]);
 
@@ -190,7 +193,7 @@ test('chat admin ops service parses add product command and creates item', funct
         $media
     );
 
-    expect($reply)->toContain('Product Added Successfully')
+    expect($reply)->toContain('[CONFIRMED] PRODUCT CREATED')
         ->and($reply)->toContain('Vintage Sunglasses');
 
     $this->assertDatabaseHas('business_catalog_items', [
@@ -221,7 +224,183 @@ test('chat admin ops service returns stock report on stock command', function ()
         '/stock'
     );
 
-    expect($reply)->toContain('Current Inventory')
+    expect($reply)->toContain('INVENTORY REPORT')
         ->and($reply)->toContain('Casual Loafers')
-        ->and($reply)->toContain('4 left');
+        ->and($reply)->toContain('4 units');
+});
+
+test('chat admin ops service generates professional executive dashboard with zero emojis', function () {
+    // 1. Create catalog items (1 in stock, 1 out of stock)
+    BusinessCatalogItem::create([
+        'business_id' => $this->business->id,
+        'name' => 'Wireless Keyboard',
+        'price' => 18000,
+        'currency' => 'NGN',
+        'stock_quantity' => 0,
+        'track_inventory' => true,
+        'is_active' => true,
+    ]);
+
+    // 2. Create today's order
+    $order = Order::create([
+        'business_id' => $this->business->id,
+        'customer_id' => $this->customer->id,
+        'tracking_code' => 'TRK-990011',
+        'status' => 'paid',
+        'subtotal' => 45000,
+        'total_amount' => 45000,
+        'currency' => 'NGN',
+        'customer_name' => 'Alice Customer',
+        'customer_phone' => '+2348011223344',
+    ]);
+
+    OrderItem::create([
+        'order_id' => $order->id,
+        'item_name' => 'Designer Leather Bag',
+        'quantity' => 1,
+        'unit_price' => 45000,
+        'total_price' => 45000,
+    ]);
+
+    $service = app(ChatAdminOpsService::class);
+
+    $reply = $service->handle(
+        $this->business,
+        ChannelType::WhatsappWeb,
+        '123456789',
+        '/dashboard'
+    );
+
+    expect($reply)->not->toBeNull()
+        ->and($reply)->toContain('ZEEN BUSINESS EXECUTIVE SUMMARY')
+        ->and($reply)->toContain('Orders Today: 1')
+        ->and($reply)->toContain('Revenue Today: 45,000.00 NGN')
+        ->and($reply)->toContain('TRK-990011')
+        ->and($reply)->toContain('[PAID]')
+        ->and($reply)->toContain('Wireless Keyboard ([OUT OF STOCK])')
+        // Strictly zero emojis check
+        ->and(preg_match('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', $reply))->toBe(0);
+});
+
+test('chat admin ops service returns recent orders log on /orders', function () {
+    $order = Order::create([
+        'business_id' => $this->business->id,
+        'customer_id' => $this->customer->id,
+        'tracking_code' => 'TRK-881122',
+        'status' => 'paid',
+        'subtotal' => 30000,
+        'total_amount' => 30000,
+        'currency' => 'NGN',
+        'customer_name' => 'Alice Customer',
+        'customer_phone' => '+2348011223344',
+        'shipping_address' => '12 Marina Road, Lagos',
+    ]);
+
+    OrderItem::create([
+        'order_id' => $order->id,
+        'item_name' => 'Sneakers',
+        'quantity' => 1,
+        'unit_price' => 30000,
+        'total_price' => 30000,
+    ]);
+
+    $service = app(ChatAdminOpsService::class);
+
+    $reply = $service->handle(
+        $this->business,
+        ChannelType::WhatsappWeb,
+        '123456789',
+        '/orders'
+    );
+
+    expect($reply)->not->toBeNull()
+        ->and($reply)->toContain('RECENT ORDERS LOG')
+        ->and($reply)->toContain('TRK-881122')
+        ->and($reply)->toContain('[PAID]')
+        ->and($reply)->toContain('12 Marina Road, Lagos');
+});
+
+test('chat admin ops service marks order as dispatched on /dispatch', function () {
+    $order = Order::create([
+        'business_id' => $this->business->id,
+        'customer_id' => $this->customer->id,
+        'tracking_code' => 'TRK-776655',
+        'status' => 'paid',
+        'subtotal' => 20000,
+        'total_amount' => 20000,
+        'currency' => 'NGN',
+        'customer_name' => 'Alice Customer',
+        'customer_phone' => '+2348011223344',
+    ]);
+
+    $service = app(ChatAdminOpsService::class);
+
+    $reply = $service->handle(
+        $this->business,
+        ChannelType::WhatsappWeb,
+        '123456789',
+        '/dispatch TRK-776655'
+    );
+
+    expect($reply)->not->toBeNull()
+        ->and($reply)->toContain('[CONFIRMED] ORDER DISPATCHED')
+        ->and($reply)->toContain('TRK-776655')
+        ->and($order->fresh()->status)->toBe('dispatched')
+        ->and($order->fresh()->dispatched_at)->not->toBeNull();
+});
+
+test('chat admin ops service rejects unauthorized non-admin phone numbers', function () {
+    $service = app(ChatAdminOpsService::class);
+
+    // Random unauthorized phone number
+    $reply = $service->handle(
+        $this->business,
+        ChannelType::WhatsappWeb,
+        '999888777666',
+        '/dashboard'
+    );
+
+    expect($reply)->toBeNull();
+});
+
+test('store owner can link telegram account via /admin_link and access /dashboard on telegram', function () {
+    $service = app(ChatAdminOpsService::class);
+    $telegramChatId = '987654321';
+
+    // 1. Initial attempt before linking should be rejected
+    $unauthReply = $service->handle(
+        $this->business,
+        ChannelType::Telegram,
+        $telegramChatId,
+        '/dashboard'
+    );
+    expect($unauthReply)->toBeNull();
+
+    // 2. Link using correct password
+    $linkReply = $service->handle(
+        $this->business,
+        ChannelType::Telegram,
+        $telegramChatId,
+        '/admin_link password'
+    );
+    expect($linkReply)->not->toBeNull()
+        ->and($linkReply)->toContain('[CONFIRMED] TELEGRAM ADMIN LINKED')
+        ->and($linkReply)->toContain($telegramChatId);
+
+    // Verify channel credentials updated
+    $channel = BusinessChannel::withoutGlobalScopes()->where('business_id', $this->business->id)
+        ->where('channel', ChannelType::Telegram)
+        ->first();
+    expect($channel->credentials['admin_chat_id'])->toBe($telegramChatId);
+
+    // 3. Now accessing /dashboard on Telegram should succeed
+    $dashReply = $service->handle(
+        $this->business,
+        ChannelType::Telegram,
+        $telegramChatId,
+        '/dashboard'
+    );
+    expect($dashReply)->not->toBeNull()
+        ->and($dashReply)->toContain('ZEEN BUSINESS EXECUTIVE SUMMARY')
+        ->and($dashReply)->toContain('Store: '.$this->business->name);
 });

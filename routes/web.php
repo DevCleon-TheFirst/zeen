@@ -158,6 +158,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/automations/{workflow}', [AutomationWorkflowController::class, 'update'])->name('automations.update');
     Route::delete('/automations/{workflow}', [AutomationWorkflowController::class, 'destroy'])->name('automations.destroy');
     Route::post('/automations/templates/{template}/import', [AutomationWorkflowController::class, 'fromTemplate'])->name('automations.fromTemplate');
+    Route::post('/automations/{workflow}/save-as-template', [AutomationWorkflowController::class, 'saveAsTemplate'])->name('automations.saveAsTemplate');
+    Route::delete('/automations/templates/{template}', [AutomationWorkflowController::class, 'destroyTemplate'])->name('automations.destroyTemplate');
     Route::get('/automations/{workflow}/executions', [AutomationExecutionController::class, 'index'])->name('automations.executions');
     Route::post('/automations/{workflow}/executions/{execution}/retry', [AutomationExecutionController::class, 'retry'])->name('automations.executions.retry');
 

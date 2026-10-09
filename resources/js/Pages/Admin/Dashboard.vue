@@ -166,52 +166,72 @@ const formatDate = (dateStr) => {
 
         <div class="p-6 md:p-8 space-y-7 max-w-7xl mx-auto">
 
-            <!-- Executive Header Banner -->
-            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-[#e8e2d9]">
-                <div>
-                    <h1 class="text-xl font-bold text-[#211812] tracking-tight">
-                        Platform Overview &amp; Control
-                    </h1>
-                    <p class="text-xs text-stone-500 mt-1">
-                        High-level financial run-rate, user directory with store associations, tenant accounts, and AI wholesale infrastructure.
-                    </p>
-                    <!-- System Health & Connectivity Badges -->
-                    <div class="flex flex-wrap items-center gap-2 mt-3">
+            <!-- Executive Command Center Header -->
+            <div class="bg-white border border-[#e8e2d9] rounded-xl p-5 shadow-xs">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <h1 class="text-xl font-bold text-[#211812] tracking-tight">
+                                Platform Command Center
+                            </h1>
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                                :class="stats.gateway_healthy && liveDeepseek?.is_available ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'"
+                            >
+                                <span class="w-1.5 h-1.5 rounded-full" :class="stats.gateway_healthy && liveDeepseek?.is_available ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                                {{ stats.gateway_healthy && liveDeepseek?.is_available ? 'All Systems Operational' : 'Partial Service Standby' }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-stone-500 mt-1">
+                            High-level financial run-rate, user directory with store associations, tenant accounts, and AI wholesale infrastructure.
+                        </p>
+                    </div>
+
+                    <!-- Telemetry Badges & Sync Action -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Gateway Status -->
                         <span
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium"
-                            :class="stats.gateway_healthy ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border"
+                            :class="stats.gateway_healthy ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'"
+                            title="WhatsApp Gateway status"
                         >
                             <span class="w-1.5 h-1.5 rounded-full" :class="stats.gateway_healthy ? 'bg-emerald-500' : 'bg-amber-500'"></span>
-                            WhatsApp Gateway: {{ stats.gateway_healthy ? 'Operational' : 'Standby' }}
+                            Gateway: <span class="font-semibold">{{ stats.gateway_healthy ? 'Operational' : 'Standby' }}</span>
                         </span>
 
+                        <!-- DeepSeek API Status -->
                         <span
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium"
-                            :class="liveDeepseek?.is_available ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border"
+                            :class="liveDeepseek?.is_available ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                            title="DeepSeek API status"
                         >
                             <span class="w-1.5 h-1.5 rounded-full" :class="liveDeepseek?.is_available ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                            DeepSeek Wholesale: {{ liveDeepseek?.is_available ? 'Connected' : 'Offline' }}
+                            DeepSeek API: <span class="font-semibold">{{ liveDeepseek?.is_available ? 'Connected' : 'Offline' }}</span>
                         </span>
 
+                        <!-- Queue Workers -->
                         <span
                             class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-100 text-stone-700 border border-stone-200"
+                            title="Background Queue status"
                         >
                             <span class="w-1.5 h-1.5 rounded-full" :class="stats.failed_jobs > 0 ? 'bg-rose-500' : 'bg-stone-500'"></span>
-                            Queue Workers: {{ stats.pending_jobs }} Queued <span v-if="stats.failed_jobs > 0" class="text-rose-600 font-bold ml-1">({{ stats.failed_jobs }} failed)</span>
+                            Queue: <span class="font-semibold">{{ stats.pending_jobs }} Queued</span>
+                            <span v-if="stats.failed_jobs > 0" class="text-rose-600 font-bold ml-0.5">({{ stats.failed_jobs }} failed)</span>
                         </span>
+
+                        <!-- Sync Button -->
+                        <button
+                            @click="refreshDeepSeekBalance"
+                            :disabled="refreshingBalance"
+                            class="text-xs text-[#211812] font-medium inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-stone-50 hover:bg-stone-100 border border-[#e8e2d9] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
+                            title="Sync DeepSeek wholesale balance"
+                        >
+                            <svg class="w-3.5 h-3.5 text-stone-600" :class="refreshingBalance ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>{{ refreshingBalance ? 'Syncing...' : 'Sync API' }}</span>
+                        </button>
                     </div>
-                </div>
-                <div class="flex items-center gap-2 self-start sm:self-center">
-                    <button
-                        @click="refreshDeepSeekBalance"
-                        :disabled="refreshingBalance"
-                        class="text-xs text-[#211812] font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-stone-50 border border-[#e8e2d9] transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
-                    >
-                        <svg class="w-3.5 h-3.5 text-stone-600" :class="refreshingBalance ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span>{{ refreshingBalance ? 'Syncing...' : 'Sync DeepSeek API' }}</span>
-                    </button>
                 </div>
             </div>
 
@@ -408,15 +428,14 @@ const formatDate = (dateStr) => {
                                 </td>
                                 <td class="p-3.5">
                                     <select
-                                        :value="b.plan || 'free'"
+                                        :value="b.plan || 'starter'"
                                         @change="changePlan(b, $event.target.value)"
                                         :disabled="updatingPlanId === b.id"
                                         class="text-xs rounded-lg border border-[#e8e2d9] bg-white py-1 px-2 text-[#211812] focus:ring-1 focus:ring-[#7b5537] cursor-pointer"
                                     >
-                                        <option value="free">Free Tier</option>
-                                        <option value="starter">Starter (₦15k)</option>
-                                        <option value="pro">Pro (₦35k)</option>
-                                        <option value="enterprise">Enterprise (₦75k)</option>
+                                        <option value="starter">Starter (₦20k)</option>
+                                        <option value="pro">Pro (₦40k)</option>
+                                        <option value="enterprise">Enterprise (₦80k)</option>
                                     </select>
                                 </td>
                                 <td class="p-3.5">

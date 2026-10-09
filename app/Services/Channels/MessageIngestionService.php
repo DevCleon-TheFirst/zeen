@@ -300,6 +300,19 @@ class MessageIngestionService
                 } catch (\Throwable $e) {
                 }
 
+                // If owner sent an admin command (e.g. /dashboard, /orders, /stock) from their device
+                $chatAdminOps = app(ChatAdminOpsService::class);
+                if ($chatAdminOps->isCommand($text)) {
+                    $chatAdminOps->handle(
+                        business: $business,
+                        channelType: ChannelType::WhatsappWeb,
+                        channelUserId: $customerPhone,
+                        content: $text,
+                        media: null,
+                        isFromMe: true
+                    );
+                }
+
                 return $message;
             }
 

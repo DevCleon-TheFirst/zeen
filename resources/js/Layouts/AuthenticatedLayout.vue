@@ -278,6 +278,16 @@ function logout() {
                                 <span>System &amp; Webhooks</span>
                             </Link>
                             <Link
+                                :href="route('automations.index')"
+                                class="nav-link"
+                                :class="route().current('automations.*') ? 'nav-link-active' : ''"
+                            >
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <span>Automation Workflows</span>
+                            </Link>
+                            <Link
                                 :href="route('settings.ai')"
                                 class="nav-link"
                                 :class="route().current('settings.*') ? 'nav-link-active' : ''"
@@ -512,11 +522,11 @@ function logout() {
 
                 <div class="flex items-center gap-3">
                     <!-- Platform Status Pill (Admin Mode) -->
-                    <div v-if="isAdminMode" class="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border border-emerald-200 bg-emerald-50/80 text-emerald-800">
+                    <div v-if="isAdminMode" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-100 text-stone-700 border border-stone-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="font-semibold text-[11px]">Platform HQ</span>
-                        <span class="text-stone-300">&middot;</span>
-                        <span class="text-emerald-700 text-[11px]">Operational</span>
+                        <span class="font-semibold text-stone-800">Platform Command</span>
+                        <span class="text-stone-300">|</span>
+                        <span class="text-stone-500 font-normal">Super Admin</span>
                     </div>
 
                     <button

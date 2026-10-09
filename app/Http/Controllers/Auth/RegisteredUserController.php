@@ -24,9 +24,11 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            'initialPlan' => $request->query('plan', 'starter'),
+        ]);
     }
 
     /**
@@ -36,27 +38,37 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'business_name' => 'required|string|max:255',
             'industry' => 'required|string|max:100',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'plan' => ['nullable', 'string', 'in:starter,pro,enterprise'],
         ]);
 
-        $user = DB::transaction(function () use ($request) {
-            $slugBase = Str::slug($request->business_name);
+        $selectedPlan = $validated['plan'] ?? 'starter';
+        $initialCredits = match ($selectedPlan) {
+            'enterprise' => 25000,
+            'pro' => 8000,
+            default => 2500,
+        };
+
+        $user = DB::transaction(function () use ($validated, $selectedPlan, $initialCredits) {
+            $slugBase = Str::slug($validated['business_name']);
             $slug = $slugBase ?: 'business';
             if (Business::where('slug', $slug)->exists()) {
                 $slug .= '-'.Str::lower(Str::random(5));
             }
 
             $business = Business::create([
-                'name' => $request->business_name,
+                'name' => $validated['business_name'],
                 'slug' => $slug,
-                'industry' => $request->industry,
+                'industry' => $validated['industry'],
                 'timezone' => 'UTC',
                 'is_active' => true,
+                'plan' => $selectedPlan,
+                'ai_credits_balance' => $initialCredits,
             ]);
 
             // Default AI Provider set to DeepSeek per requirement
@@ -72,9 +84,9 @@ class RegisteredUserController extends Controller
             ]);
 
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
                 'business_id' => $business->id,
                 'role' => UserRole::Owner,
                 'is_active' => true,

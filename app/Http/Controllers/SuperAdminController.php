@@ -39,10 +39,9 @@ class SuperAdminController extends Controller
 
         // ─── Financial & SaaS Metrics ──────────────────────────────────────────
         $planPricing = [
-            'free' => 0,
-            'starter' => 15000,
-            'pro' => 35000,
-            'enterprise' => 75000,
+            'starter' => 20000,
+            'pro' => 40000,
+            'enterprise' => 80000,
         ];
 
         $planBreakdown = Business::where('is_active', true)
@@ -164,7 +163,7 @@ class SuperAdminController extends Controller
     public function updatePlan(Request $request, Business $business): RedirectResponse
     {
         $validated = $request->validate([
-            'plan' => ['required', 'string', 'in:free,starter,pro,enterprise'],
+            'plan' => ['required', 'string', 'in:starter,pro,enterprise'],
         ]);
 
         $business->update(['plan' => $validated['plan']]);

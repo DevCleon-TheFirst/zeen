@@ -12,9 +12,40 @@ const props = defineProps({
     workflow: Object,
     nodeTypes: Object,
     businessPlan: Object,
+    currentBusiness: Object,
+    allBusinesses: {
+        type: Array,
+        default: () => [],
+    },
+    isSuperAdmin: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const isEditing = computed(() => !!props.workflow?.id);
+
+const showTemplateModal = ref(false);
+const templateForm = useForm({
+    name: props.workflow?.name || '',
+    industry: 'general',
+    description: props.workflow?.description || '',
+});
+
+const openSaveAsTemplate = () => {
+    templateForm.name = form.name;
+    templateForm.description = form.description;
+    showTemplateModal.value = true;
+};
+
+const submitSaveTemplate = () => {
+    if (!props.workflow?.id) return;
+    templateForm.post(route('automations.saveAsTemplate', props.workflow.id), {
+        onSuccess: () => {
+            showTemplateModal.value = false;
+        },
+    });
+};
 
 const form = useForm({
     name: props.workflow?.name || 'Untitled Automation',
@@ -22,6 +53,7 @@ const form = useForm({
     trigger_type: props.workflow?.trigger_type || 'new_message',
     trigger_config: props.workflow?.trigger_config || {},
     is_active: props.workflow?.is_active ?? false,
+    business_id: props.workflow?.business_id || props.currentBusiness?.id || (props.allBusinesses[0]?.id ?? null),
     nodes: props.workflow?.nodes || [
         {
             id: 'node_1',
@@ -368,6 +400,19 @@ const getNodeAccent = (type) => {
                     placeholder="Workflow Name"
                 />
                 <div class="h-4 w-px bg-[#e8e2d9]"></div>
+                <!-- Super Admin Target Store Selector -->
+                <div v-if="isSuperAdmin && allBusinesses.length > 0" class="flex items-center gap-1.5">
+                    <span class="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Store:</span>
+                    <select
+                        v-model="form.business_id"
+                        class="text-xs rounded-md border-[#e8e2d9] bg-amber-50/50 text-[#241e19] py-0.5 px-2 shadow-xs focus:border-[#7b5537] focus:ring-1 focus:ring-[#7b5537] max-w-[140px]"
+                    >
+                        <option v-for="b in allBusinesses" :key="b.id" :value="b.id">
+                            {{ b.name }}
+                        </option>
+                    </select>
+                </div>
+                <div v-if="isSuperAdmin && allBusinesses.length > 0" class="h-4 w-px bg-[#e8e2d9]"></div>
                 <div class="flex items-center gap-1.5">
                     <span class="text-[10px] uppercase font-bold text-stone-500 tracking-wider">Trigger:</span>
                     <select
@@ -400,7 +445,16 @@ const getNodeAccent = (type) => {
                 </Link>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5">
+                <!-- Super Admin: Save as Platform Blueprint -->
+                <button
+                    v-if="isSuperAdmin && isEditing"
+                    @click="openSaveAsTemplate"
+                    type="button"
+                    class="text-xs text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 font-medium px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                >
+                    Publish as Blueprint
+                </button>
                 <!-- Active status switch -->
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -1063,6 +1117,77 @@ const getNodeAccent = (type) => {
                         </svg>
                     </div>
                     <p class="text-xs text-stone-500">Select any node on the canvas to edit its properties.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Super Admin Publish Blueprint Modal -->
+        <div
+            v-if="showTemplateModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
+        >
+            <div class="bg-white rounded-xl border border-[#e8e2d9] shadow-xl max-w-md w-full p-6 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-[#e8e2d9]">
+                    <div>
+                        <h3 class="text-sm font-bold text-[#211812]">Publish as Platform Blueprint</h3>
+                        <p class="text-xs text-stone-500 mt-0.5">Make this workflow available to all stores as a starter template.</p>
+                    </div>
+                    <button @click="showTemplateModal = false" class="text-stone-400 hover:text-stone-700 text-lg">✕</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Blueprint Name</label>
+                        <input
+                            type="text"
+                            v-model="templateForm.name"
+                            class="w-full text-xs rounded-lg border-[#e8e2d9] p-2 focus:ring-1 focus:ring-[#7b5537]"
+                            placeholder="e.g. Abandoned Cart Recovery"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Industry Focus</label>
+                        <select
+                            v-model="templateForm.industry"
+                            class="w-full text-xs rounded-lg border-[#e8e2d9] p-2 focus:ring-1 focus:ring-[#7b5537]"
+                        >
+                            <option value="general">General / All Industries</option>
+                            <option value="retail">Retail &amp; E-Commerce</option>
+                            <option value="restaurant">Food &amp; Restaurant</option>
+                            <option value="real_estate">Real Estate &amp; Housing</option>
+                            <option value="services">Services &amp; Appointments</option>
+                            <option value="healthcare">Healthcare &amp; Clinic</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Description</label>
+                        <textarea
+                            v-model="templateForm.description"
+                            rows="3"
+                            class="w-full text-xs rounded-lg border-[#e8e2d9] p-2 focus:ring-1 focus:ring-[#7b5537]"
+                            placeholder="Explain what this automation does and why stores should use it..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#e8e2d9]">
+                    <button
+                        type="button"
+                        @click="showTemplateModal = false"
+                        class="px-3 py-1.5 text-xs text-stone-600 hover:text-stone-900 font-medium"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        @click="submitSaveTemplate"
+                        :disabled="templateForm.processing || !templateForm.name"
+                        class="btn-primary"
+                    >
+                        {{ templateForm.processing ? 'Publishing...' : 'Publish Blueprint' }}
+                    </button>
                 </div>
             </div>
         </div>

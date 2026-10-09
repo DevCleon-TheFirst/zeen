@@ -6,6 +6,7 @@ use App\Models\AutomationEdge;
 use App\Models\AutomationNode;
 use App\Models\AutomationTemplate;
 use App\Models\AutomationWorkflow;
+use App\Models\Business;
 use App\Services\Automation\AutomationPlanGuard;
 use App\Services\TenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -16,38 +17,86 @@ use Inertia\Response;
 
 class AutomationWorkflowController extends Controller
 {
-    public function index(): Response
+    private function resolveBusiness(?int $businessId = null): ?Business
     {
-        $business = TenantContext::get();
-        abort_unless($business, 404);
+        $user = auth()->user();
+        if ($user && $user->is_super_admin) {
+            if ($businessId) {
+                return Business::find($businessId);
+            }
+            if (request()->has('business_id')) {
+                $b = Business::find(request('business_id'));
+                if ($b) {
+                    return $b;
+                }
+            }
 
-        $workflows = AutomationWorkflow::where('business_id', $business->id)
+            return TenantContext::get() ?? Business::where('is_active', true)->first() ?? Business::first();
+        }
+
+        return TenantContext::get();
+    }
+
+    public function index(Request $request): Response
+    {
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $business = $this->resolveBusiness();
+
+        $query = AutomationWorkflow::query();
+
+        if (! $isSuperAdmin) {
+            abort_unless($business, 404);
+            $query->where('business_id', $business->id);
+        } elseif ($request->filled('business_id')) {
+            $query->where('business_id', (int) $request->input('business_id'));
+        } elseif ($business) {
+            $query->where('business_id', $business->id);
+        }
+
+        $workflows = $query->with(['business'])
             ->withCount(['nodes', 'executions'])
             ->orderBy('id', 'desc')
             ->get();
 
-        $templates = AutomationTemplate::where('is_published', true)->get();
+        $templates = AutomationTemplate::when(! $isSuperAdmin, fn ($q) => $q->where('is_published', true))->get();
 
         return Inertia::render('Automations/Index', [
             'workflows' => $workflows,
             'templates' => $templates,
+            'currentBusiness' => $business ? [
+                'id' => $business->id,
+                'name' => $business->name,
+                'plan' => $business->plan ?? 'starter',
+            ] : null,
+            'allBusinesses' => $isSuperAdmin ? Business::select('id', 'name', 'slug')->get() : [],
+            'isSuperAdmin' => $isSuperAdmin,
             'businessPlan' => [
-                'plan' => $business->plan ?? 'free',
+                'plan' => $isSuperAdmin ? 'enterprise' : ($business->plan ?? 'starter'),
                 'maxActive' => AutomationPlanGuard::maxActiveWorkflows($business),
+            ],
+            'filters' => [
+                'business_id' => $request->input('business_id', $business?->id),
             ],
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        $business = TenantContext::get();
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $business = $this->resolveBusiness((int) $request->input('business_id'));
         abort_unless($business, 404);
 
         return Inertia::render('Automations/Builder', [
             'workflow' => null,
+            'currentBusiness' => [
+                'id' => $business->id,
+                'name' => $business->name,
+            ],
+            'allBusinesses' => $isSuperAdmin ? Business::select('id', 'name', 'slug')->get() : [],
+            'isSuperAdmin' => $isSuperAdmin,
             'nodeTypes' => $this->getAvailableNodePalette(),
             'businessPlan' => [
-                'plan' => $business->plan ?? 'free',
+                'plan' => $isSuperAdmin ? 'enterprise' : ($business->plan ?? 'starter'),
                 'maxActive' => AutomationPlanGuard::maxActiveWorkflows($business),
             ],
         ]);
@@ -55,10 +104,11 @@ class AutomationWorkflowController extends Controller
 
     public function edit(AutomationWorkflow $workflow): Response
     {
-        $business = TenantContext::get();
-        abort_unless($business && $workflow->business_id === $business->id, 403);
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $business = $workflow->business ?? TenantContext::get();
+        abort_unless($isSuperAdmin || ($business && $workflow->business_id === $business->id), 403);
 
-        $workflow->load(['nodes', 'edges']);
+        $workflow->load(['nodes', 'edges', 'business']);
 
         return Inertia::render('Automations/Builder', [
             'workflow' => [
@@ -68,6 +118,7 @@ class AutomationWorkflowController extends Controller
                 'trigger_type' => $workflow->trigger_type,
                 'trigger_config' => $workflow->trigger_config,
                 'is_active' => (bool) $workflow->is_active,
+                'business_id' => $workflow->business_id,
                 'nodes' => $workflow->nodes->map(fn ($n) => [
                     'id' => $n->node_id,
                     'type' => $n->type,
@@ -82,9 +133,15 @@ class AutomationWorkflowController extends Controller
                     'label' => $e->condition_label,
                 ]),
             ],
+            'currentBusiness' => $business ? [
+                'id' => $business->id,
+                'name' => $business->name,
+            ] : null,
+            'allBusinesses' => $isSuperAdmin ? Business::select('id', 'name', 'slug')->get() : [],
+            'isSuperAdmin' => $isSuperAdmin,
             'nodeTypes' => $this->getAvailableNodePalette(),
             'businessPlan' => [
-                'plan' => $business->plan ?? 'free',
+                'plan' => $isSuperAdmin ? 'enterprise' : ($business->plan ?? 'starter'),
                 'maxActive' => AutomationPlanGuard::maxActiveWorkflows($business),
             ],
         ]);
@@ -92,7 +149,9 @@ class AutomationWorkflowController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $business = TenantContext::get();
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $businessId = $isSuperAdmin && $request->filled('business_id') ? (int) $request->input('business_id') : null;
+        $business = $this->resolveBusiness($businessId);
         abort_unless($business, 404);
 
         $validated = $request->validate([
@@ -115,7 +174,7 @@ class AutomationWorkflowController extends Controller
                 'description' => $validated['description'] ?? null,
                 'trigger_type' => $validated['trigger_type'],
                 'trigger_config' => $validated['trigger_config'] ?? [],
-                'is_active' => false, // Set to false initially, checked by guard below
+                'is_active' => false,
             ]);
 
             foreach ($validated['nodes'] as $n) {
@@ -162,8 +221,9 @@ class AutomationWorkflowController extends Controller
 
     public function update(Request $request, AutomationWorkflow $workflow): RedirectResponse
     {
-        $business = TenantContext::get();
-        abort_unless($business && $workflow->business_id === $business->id, 403);
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $business = $workflow->business ?? TenantContext::get();
+        abort_unless($isSuperAdmin || ($business && $workflow->business_id === $business->id), 403);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -216,7 +276,7 @@ class AutomationWorkflowController extends Controller
         });
 
         if ($isActiveRequested) {
-            $guard = AutomationPlanGuard::canActivate($workflow, $business);
+            $guard = AutomationPlanGuard::canActivate($workflow, $business ?? $workflow->business);
             if ($guard['allowed']) {
                 $workflow->update(['is_active' => true]);
             } else {
@@ -232,9 +292,11 @@ class AutomationWorkflowController extends Controller
         return $redirect;
     }
 
-    public function fromTemplate(AutomationTemplate $template): RedirectResponse
+    public function fromTemplate(Request $request, AutomationTemplate $template): RedirectResponse
     {
-        $business = TenantContext::get();
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $businessId = $isSuperAdmin && $request->filled('business_id') ? (int) $request->input('business_id') : null;
+        $business = $this->resolveBusiness($businessId);
         abort_unless($business, 404);
 
         $snapshot = $template->workflow_snapshot;
@@ -278,12 +340,61 @@ class AutomationWorkflowController extends Controller
 
     public function destroy(AutomationWorkflow $workflow): RedirectResponse
     {
-        $business = TenantContext::get();
-        abort_unless($business && $workflow->business_id === $business->id, 403);
+        $isSuperAdmin = (bool) auth()->user()?->is_super_admin;
+        $business = $workflow->business ?? TenantContext::get();
+        abort_unless($isSuperAdmin || ($business && $workflow->business_id === $business->id), 403);
 
         $workflow->delete();
 
         return redirect()->route('automations.index')->with('success', 'Workflow deleted.');
+    }
+
+    public function saveAsTemplate(Request $request, AutomationWorkflow $workflow): RedirectResponse
+    {
+        abort_unless(auth()->user()?->is_super_admin, 403);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'industry' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $workflow->load(['nodes', 'edges']);
+
+        $snapshot = [
+            'nodes' => $workflow->nodes->map(fn ($n) => [
+                'id' => $n->node_id,
+                'type' => $n->type,
+                'label' => $n->label,
+                'config' => $n->config ?? [],
+                'position' => ['x' => (float) $n->position_x, 'y' => (float) $n->position_y],
+            ])->values()->all(),
+            'edges' => $workflow->edges->map(fn ($e) => [
+                'id' => $e->edge_id,
+                'source' => $e->source_node_id,
+                'target' => $e->target_node_id,
+                'label' => $e->condition_label,
+            ])->values()->all(),
+        ];
+
+        AutomationTemplate::create([
+            'name' => $validated['name'],
+            'industry' => $validated['industry'] ?? 'general',
+            'description' => $validated['description'] ?? $workflow->description,
+            'workflow_snapshot' => $snapshot,
+            'is_published' => true,
+        ]);
+
+        return back()->with('success', "Workflow '{$workflow->name}' published as global platform template.");
+    }
+
+    public function destroyTemplate(AutomationTemplate $template): RedirectResponse
+    {
+        abort_unless(auth()->user()?->is_super_admin, 403);
+
+        $template->delete();
+
+        return back()->with('success', 'Global template removed.');
     }
 
     private function getAvailableNodePalette(): array

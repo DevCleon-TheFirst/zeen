@@ -7,7 +7,7 @@ use App\Models\Business;
 
 class AutomationPlanGuard
 {
-    public const PLAN_FREE = 'free';
+    public const PLAN_STARTER = 'starter';
 
     public const PLAN_PRO = 'pro';
 
@@ -20,13 +20,17 @@ class AutomationPlanGuard
      */
     public static function canExecute(AutomationWorkflow $workflow, Business $business): array
     {
-        $plan = strtolower($business->plan ?? self::PLAN_FREE);
+        if (auth()->check() && auth()->user()->is_super_admin) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        $plan = strtolower($business->plan ?? self::PLAN_STARTER);
 
         if (in_array($plan, [self::PLAN_PRO, self::PLAN_ENTERPRISE], true)) {
             return ['allowed' => true, 'reason' => null];
         }
 
-        // On Free Plan: disallow external HTTP request node execution
+        // On Starter Plan: disallow external HTTP request node execution
         $hasRestrictedNode = $workflow->nodes()
             ->where('type', 'action_http_request')
             ->exists();
@@ -38,18 +42,18 @@ class AutomationPlanGuard
             ];
         }
 
-        // On Free Plan: only the first 2 active workflows are permitted to execute
+        // On Starter Plan: first 3 active workflows are permitted to execute
         $activeWorkflows = AutomationWorkflow::where('business_id', $business->id)
             ->where('is_active', true)
             ->orderBy('id', 'asc')
             ->pluck('id')
-            ->take(2)
+            ->take(3)
             ->toArray();
 
         if (! in_array($workflow->id, $activeWorkflows, true)) {
             return [
                 'allowed' => false,
-                'reason' => 'Free plan allows a maximum of 2 simultaneously active workflows. Please upgrade to Pro for unlimited workflows.',
+                'reason' => 'Starter plan allows a maximum of 3 simultaneously active workflows. Please upgrade to Pro for unlimited workflows.',
             ];
         }
 
@@ -63,7 +67,11 @@ class AutomationPlanGuard
      */
     public static function canActivate(AutomationWorkflow $workflow, Business $business): array
     {
-        $plan = strtolower($business->plan ?? self::PLAN_FREE);
+        if (auth()->check() && auth()->user()->is_super_admin) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        $plan = strtolower($business->plan ?? self::PLAN_STARTER);
 
         if (in_array($plan, [self::PLAN_PRO, self::PLAN_ENTERPRISE], true)) {
             return ['allowed' => true, 'reason' => null];
@@ -85,10 +93,10 @@ class AutomationPlanGuard
             ->where('id', '!=', $workflow->id)
             ->count();
 
-        if ($currentActiveCount >= 2) {
+        if ($currentActiveCount >= 3) {
             return [
                 'allowed' => false,
-                'reason' => 'Free plan is limited to 2 active workflows. Upgrade to Pro or deactivate an existing workflow.',
+                'reason' => 'Starter plan is limited to 3 active workflows. Upgrade to Pro or deactivate an existing workflow.',
             ];
         }
 
@@ -100,23 +108,31 @@ class AutomationPlanGuard
      */
     public static function isNodeTypeAllowed(string $nodeType, Business $business): bool
     {
-        $plan = strtolower($business->plan ?? self::PLAN_FREE);
+        if (auth()->check() && auth()->user()->is_super_admin) {
+            return true;
+        }
+
+        $plan = strtolower($business->plan ?? self::PLAN_STARTER);
 
         if (in_array($plan, [self::PLAN_PRO, self::PLAN_ENTERPRISE], true)) {
             return true;
         }
 
-        // Restricted nodes on Free tier
+        // Restricted nodes on Starter tier
         return $nodeType !== 'action_http_request';
     }
 
     /**
      * Get maximum permitted active workflows for a business.
      */
-    public static function maxActiveWorkflows(Business $business): ?int
+    public static function maxActiveWorkflows(?Business $business = null): ?int
     {
-        $plan = strtolower($business->plan ?? self::PLAN_FREE);
+        if (auth()->check() && auth()->user()->is_super_admin) {
+            return null; // Unlimited for super admin
+        }
 
-        return in_array($plan, [self::PLAN_PRO, self::PLAN_ENTERPRISE], true) ? null : 2;
+        $plan = strtolower($business?->plan ?? self::PLAN_STARTER);
+
+        return in_array($plan, [self::PLAN_PRO, self::PLAN_ENTERPRISE], true) ? null : 3;
     }
 }

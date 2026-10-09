@@ -887,114 +887,147 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                 
-                <!-- Plan 1 -->
+                <!-- Plan 1: Starter Store (₦20,000) -->
                 <div class="rounded-2xl bg-white border border-[#e8e2d9] p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
                         <div class="text-xs font-bold uppercase tracking-wider text-[#4a3324] mb-2">Starter Store</div>
-                        <p class="text-3xl font-light font-editorial text-[#241e19]">₦15,000 <span class="text-xs font-sans text-[#66584d]">/ mo</span></p>
-                        <p class="text-[11px] text-[#66584d] mt-1">Single business workspace (approx. $15 USD)</p>
+                        <p class="text-3xl font-light font-editorial text-[#241e19]">₦20,000 <span class="text-xs font-sans text-[#66584d]">/ mo</span></p>
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-medium mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <strong>2,500 Messages</strong> / mo included
+                        </div>
                         <p class="text-xs text-[#66584d] mt-4 pb-6 border-b border-[#e8e2d9]">
-                            Essential automated inbox, product catalog, and conversational payments for independent merchants and boutiques.
+                            Essential automated sales inbox, smart catalog matching, and instant conversational checkout links for single-store retailers and independent merchants.
                         </p>
                         <ul class="space-y-3 text-xs text-[#241e19] mt-6">
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                1 Connected Messaging Channel
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <strong>2,500 AI Messages</strong> / month
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Up to 50 Product Catalog Items
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                1 Connected Channel (WhatsApp or Telegram)
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                24/7 AI Auto-Replies & FAQ Handling
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                2 Team Staff Seats
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Paystack & Stripe Checkout Integration
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Up to 100 Product Catalog Items
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                24/7 AI Auto-Replies &amp; Direct Order Links
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Paystack &amp; Monnify Checkout Integration
                             </li>
                         </ul>
                     </div>
                     <div class="mt-8 pt-6">
-                        <a href="{{ route('register') }}" class="block w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center bg-[#faf8f5] text-[#241e19] border border-[#e8e2d9] hover:bg-[#291e17] hover:text-white transition-all">
-                            Choose Starter
+                        <a href="{{ route('register') }}?plan=starter" class="block w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center bg-[#faf8f5] text-[#241e19] border border-[#e8e2d9] hover:bg-[#291e17] hover:text-white transition-all shadow-xs">
+                            Choose Starter (₦20,000)
                         </a>
                     </div>
                 </div>
 
-                <!-- Plan 2: Pro Business (Featured) -->
+                <!-- Plan 2: Omnichannel Pro (₦40,000 - Featured) -->
                 <div class="rounded-2xl bg-[#291e17] text-white border-2 border-[#7b5537] p-8 flex flex-col justify-between shadow-xl relative scale-105">
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#f59e0b] text-[#1a110b] font-mono text-[10px] font-bold uppercase tracking-wider">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#f59e0b] text-[#1a110b] font-mono text-[10px] font-bold uppercase tracking-wider shadow-xs">
                         Most Popular
                     </div>
                     <div>
                         <div class="text-xs font-bold uppercase tracking-wider text-stone-300 mb-2">Omnichannel Pro</div>
-                        <p class="text-3xl font-light font-editorial text-white">₦45,000 <span class="text-xs font-sans text-stone-400">/ mo</span></p>
-                        <p class="text-[11px] text-stone-400 mt-1">Multi-Channel & Multi-Staff (approx. $45 USD)</p>
+                        <p class="text-3xl font-light font-editorial text-white">₦40,000 <span class="text-xs font-sans text-stone-400">/ mo</span></p>
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-800 text-amber-300 text-[11px] font-medium mt-1 border border-amber-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                            <strong>8,000 Messages</strong> / mo included
+                        </div>
                         <p class="text-xs text-stone-300 mt-4 pb-6 border-b border-[#3b2c22]">
-                            For scaling retail brands, restaurants, clinics, and hospitality teams needing automated routing and full CRM power.
+                            For scaling retail brands, restaurants, clinics, and hospitality teams needing automated routing, inventory sync, and full CRM power.
                         </p>
                         <ul class="space-y-3 text-xs text-stone-200 mt-6">
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Unlimited Channels (WhatsApp, Telegram, Web)
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <strong>8,000 AI Messages</strong> / month
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Unlimited Product Catalog & Stock Tracking
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Multi-Channel (WhatsApp, Telegram, Web Widget)
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                In-Chat Staff Operations (/stock, /price, /add)
-                            </li>
-                            <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 5 Team Staff Seats with Role Permissions
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Lead CRM & Appointment Booking Module
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Unlimited Product Catalog &amp; Live Stock Tracking
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                In-Chat Staff Operations (/stock, /price, /add)
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Lead CRM &amp; Appointment Booking Module
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-[#f59e0b] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Unlimited Automation Workflows &amp; Webhooks
                             </li>
                         </ul>
                     </div>
                     <div class="mt-8 pt-6">
                         <a href="{{ route('register') }}?plan=pro" class="block w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center bg-[#f59e0b] text-[#1a110b] hover:bg-amber-400 transition-all shadow-md">
-                            Choose Omnichannel Pro
+                            Choose Omnichannel Pro (₦40,000)
                         </a>
                     </div>
                 </div>
 
-                <!-- Plan 3: Enterprise -->
+                <!-- Plan 3: Enterprise Scale (₦80,000) -->
                 <div class="rounded-2xl bg-white border border-[#e8e2d9] p-8 flex flex-col justify-between hover:shadow-md transition-shadow">
                     <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-[#4a3324] mb-2">Enterprise Custom</div>
-                        <p class="text-3xl font-light font-editorial text-[#241e19]">Custom <span class="text-xs font-sans text-[#66584d]">Volume</span></p>
-                        <p class="text-[11px] text-[#66584d] mt-1">Multi-Brand & Enterprise Groups</p>
+                        <div class="text-xs font-bold uppercase tracking-wider text-[#4a3324] mb-2">Enterprise Scale</div>
+                        <p class="text-3xl font-light font-editorial text-[#241e19]">₦80,000 <span class="text-xs font-sans text-[#66584d]">/ mo</span></p>
+                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-medium mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            <strong>25,000 Messages</strong> / mo included
+                        </div>
                         <p class="text-xs text-[#66584d] mt-4 pb-6 border-b border-[#e8e2d9]">
-                            Dedicated infrastructure, custom AI fine-tuning, ERP inventory sync, and priority webhook pipelines for multi-location groups.
+                            Dedicated high-throughput infrastructure, custom AI fine-tuning, ERP inventory sync, and priority webhook pipelines for multi-location groups.
                         </p>
                         <ul class="space-y-3 text-xs text-[#241e19] mt-6">
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Unlimited Workspaces & Team Members
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <strong>25,000 AI Messages</strong> / month
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Custom ERP / Warehouse Database Sync
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Unlimited Workspaces &amp; Team Staff Seats
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Dedicated Account Manager & SLA
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Custom Domain Knowledge &amp; AI Fine-Tuning
                             </li>
                             <li class="flex items-center gap-2.5">
-                                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                External HTTP API Requests &amp; ERP Sync
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                Dedicated Account Manager &amp; SLA
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                 99.98% High-Availability Cluster
                             </li>
                         </ul>
                     </div>
                     <div class="mt-8 pt-6">
-                        <a href="#contact" class="block w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center bg-[#faf8f5] text-[#241e19] border border-[#e8e2d9] hover:bg-[#291e17] hover:text-white transition-all">
-                            Talk To Solutions Team
+                        <a href="{{ route('register') }}?plan=enterprise" class="block w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-center bg-[#faf8f5] text-[#241e19] border border-[#e8e2d9] hover:bg-[#291e17] hover:text-white transition-all shadow-xs">
+                            Choose Enterprise (₦80,000)
                         </a>
                     </div>
                 </div>
